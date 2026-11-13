@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Puerto Rico Electoral Map</title>
+  <link rel="stylesheet" href="vendor/leaflet.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-shape bg-shape-a" aria-hidden="true"></div>
+  <div class="bg-shape bg-shape-b" aria-hidden="true"></div>
+  <main class="app-shell">
+    <aside class="left-panel card">
+      <div id="electoral-sidebar">
+      <section class="totals-panel" aria-live="polite">
+        <h2>Totales nivel isla</h2>
+        <p id="nationwideRaceLabel">Gobernador</p>
+        <ul id="nationwideTotals"></ul>
+      </section>
+      <section class="filters-panel">
+        <p class="label">Año electoral</p>
+        <div class="year-buttons" role="group" aria-label="Election year">
+          <button type="button" class="year-btn" data-year="2024">2024</button>
+          <button type="button" class="year-btn" data-year="2020">2020</button>
+          <button type="button" class="year-btn" data-year="2016">2016</button>
+          <button type="button" class="year-btn" data-year="2012">2012</button>
+        </div>
+        <div class="mode-panel" role="group" aria-label="Map display">
+          <button type="button" class="scope-btn mode-btn is-active" data-mode="totals">Totales</button>
+          <button type="button" class="scope-btn mode-btn" data-mode="margin">Margen %</button>
+        </div>
+      </section>
+      <p id="status" role="status">Cargando mapa...</p>
+      <p id="error" role="alert" hidden></p>
+      </div>
+      <div id="block-group-sidebar" hidden>
+        <section class="totals-panel">
+          <h2>Census Data</h2>
+          <p id="block-group-vintage-label">ACS 2020–2024 · TIGER/Line 2024</p>
+          <p id="block-group-description" class="legend-note">Direct ACS estimates at block-group geography; not allocated to electoral areas.</p>
+        </section>
+        <section class="filters-panel">
+          <p class="label">ACS / TIGER/Line vintage</p>
+          <div class="year-buttons census-years" role="group" aria-label="ACS / TIGER/Line vintage">
+            <button type="button" class="year-btn is-active" data-block-group-year="2024" aria-pressed="true">2024</button>
+            <button type="button" class="year-btn" data-block-group-year="2020" aria-pressed="false">2020</button>
+            <button type="button" class="year-btn" data-block-group-year="2016" aria-pressed="false">2016</button>
+            <button type="button" class="year-btn" data-block-group-year="2012" aria-pressed="false">2012</button>
+          </div>
+          <label class="label" for="block-group-metric">Indicator</label>
+          <select id="block-group-metric" class="census-select"></select>
+        </section>
+        <p id="block-group-status" role="status" hidden></p>
+        <p id="block-group-error" role="alert" hidden></p>
+      </div>
+      <div id="combined-controls" hidden>
+        <section class="filters-panel">
+          <h2>Direct ACS overlay</h2>
+          <p class="label">ACS / TIGER/Line vintage</p>
+          <div class="year-buttons census-years" role="group" aria-label="Combined map ACS vintage">
+            <button type="button" class="year-btn is-active" data-combined-census-year="2024" aria-pressed="true">2024</button>
+            <button type="button" class="year-btn" data-combined-census-year="2020" aria-pressed="false">2020</button>
+            <button type="button" class="year-btn" data-combined-census-year="2016" aria-pressed="false">2016</button>
+            <button type="button" class="year-btn" data-combined-census-year="2012" aria-pressed="false">2012</button>
+          </div>
+          <label class="label" for="combined-category">SES category</label>
+          <select id="combined-category" class="census-select"></select>
+          <label class="label" for="combined-metric">Indicator</label>
+          <select id="combined-metric" class="census-select"></select>
+        </section>
+        <p id="combined-status" role="status" hidden></p>
+        <p id="combined-error" role="alert" hidden></p>
+      </div>
+    </aside>
+
+    <section class="map-panel card">
+      <nav class="map-tabs" role="tablist" aria-label="Map data">
+        <button type="button" class="map-tab-btn is-active" id="electoral-tab" role="tab"
+          aria-selected="true" aria-controls="electoral-panel">Electoral</button>
+        <button type="button" class="map-tab-btn" id="block-group-tab" role="tab"
+          aria-selected="false" aria-controls="block-group-panel" tabindex="-1">Census Data</button>
+        <button type="button" class="map-tab-btn" id="combined-tab" role="tab"
+          aria-selected="false" aria-controls="combined-panel" tabindex="-1">Combined</button>
+      </nav>
+
+      <div id="electoral-panel" role="tabpanel" aria-labelledby="electoral-tab">
+        <header class="map-header">
+          <h1 id="mapTitle">Mapa Electoral 2024</h1>
+          <div id="raceButtons" class="race-buttons" role="group" aria-label="Election race"></div>
+        </header>
+        <div class="map-wrap">
+          <div id="map" class="map-canvas" aria-label="Puerto Rico electoral map"></div>
+          <aside class="legend card" aria-label="Map legend">
+            <h2>Winner by Area</h2>
+            <ul id="legendList"></ul>
+            <p id="legendNote" class="legend-note">Color is based on the party with the most votes in the selected race.</p>
+          </aside>
+        </div>
+        <footer class="bottom-controls">
+          <div class="scope-controls" role="group" aria-label="Electoral geography">
+            <button type="button" class="scope-btn is-active" data-scope="municipio">Municipio</button>
+            <button type="button" class="scope-btn" data-scope="precinto">Precinto</button>
+            <button type="button" class="scope-btn" data-scope="unidad">Unidad</button>
+          </div>
+          <button type="button" id="residencialesToggle" class="scope-btn overlay-btn"
+            data-residenciales-toggle aria-pressed="false">Residenciales (2009)</button>
+        </footer>
+      </div>
+
+      <div id="block-group-panel" class="census-panel" role="tabpanel"
+        aria-labelledby="block-group-tab" hidden>
+        <header class="map-header">
+          <h1 id="block-group-map-title">Census estimates · TIGER/Line 2024</h1>
+          <p class="label">SES category</p>
+          <div id="block-group-category-buttons" class="race-buttons"
+            role="group" aria-label="SES category"></div>
+        </header>
+        <div class="map-wrap">
+          <div id="block-group-map" class="map-canvas block-group-map" aria-label="Census estimates at TIGER/Line block-group geography"></div>
+          <aside class="legend card" aria-label="Block-group estimate legend">
+            <h2 id="block-group-legend-title">Estimate</h2>
+            <ul id="block-group-legend-list"></ul>
+            <p class="legend-note">Direct ACS block-group estimates; quantile ranges are recalculated for each vintage. Margins of error are not shown.</p>
+          </aside>
+        </div>
+      </div>
+
+      <div id="combined-panel" class="combined-panel" role="tabpanel"
+        aria-labelledby="combined-tab" hidden>
+        <header class="map-header">
+          <h1 id="combined-map-title">Mapa Electoral 2024</h1>
+          <div id="combinedRaceButtons" class="race-buttons" role="group" aria-label="Election race"></div>
+        </header>
+        <div class="combined-map-layout">
+          <div id="combined-map" class="map-canvas" aria-label="Election results with a direct ACS block-group overlay"></div>
+          <aside class="combined-data-box card" aria-label="Census overlay and election map legends">
+            <h2 id="combined-census-title">Direct ACS estimate · TIGER/Line 2024</h2>
+            <p id="combined-census-period" class="legend-note">ACS 2020–2024</p>
+            <p id="combined-census-description" class="legend-note"></p>
+            <ul id="combined-census-legend"></ul>
+            <label class="label transparency-label" for="combined-transparency">
+              Overlay transparency <span id="combined-transparency-value">35%</span>
+            </label>
+            <input id="combined-transparency" type="range" min="0" max="100" step="1" value="35"
+              aria-label="Census overlay transparency">
+            <p class="legend-note">0% is opaque; 100% is fully transparent. Census values are direct block-group estimates, not apportioned to electoral areas. Margins of error are not shown.</p>
+            <p id="combined-map-status" role="status" class="legend-note"></p>
+            <hr>
+            <h2>Electoral results</h2>
+            <ul id="combined-election-legend"></ul>
+            <p id="combined-election-note" class="legend-note"></p>
+          </aside>
+        </div>
+        <footer class="bottom-controls">
+          <div class="scope-controls" role="group" aria-label="Electoral geography">
+            <button type="button" class="scope-btn is-active" data-scope="municipio">Municipio</button>
+            <button type="button" class="scope-btn" data-scope="precinto">Precinto</button>
+            <button type="button" class="scope-btn" data-scope="unidad">Unidad</button>
+          </div>
+          <button type="button" id="combinedResidencialesToggle" class="scope-btn overlay-btn"
+            data-residenciales-toggle aria-pressed="false">Residenciales (2009)</button>
+        </footer>
+      </div>
+    </section>
+  </main>
+  <script src="vendor/leaflet.js"></script>
+  <script src="app.js?v=14"></script>
+</body>
+</html>
