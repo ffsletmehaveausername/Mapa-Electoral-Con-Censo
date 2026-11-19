@@ -35,14 +35,15 @@ const CENSUS_DEFAULT_METRICS = {
 const state = {
   year:2024, race:'GOB', geo:'municipio', mode:'totals', bundle:null,
   activeLayer:null, layers:{}, selectedMunicipio:null, selectedPrecinct:null,
-  residencialesLayer:null, residencialesVisible:false, loading:false, request:0
+  residencialesLayer:null, residencialesVisible:false,
+  viviendaPublicaLayer:null, viviendaPublicaVisible:false, loading:false, request:0
 };
 const cache = new Map();
 const byId = id => document.getElementById(id);
 const numeric = value => typeof value === 'number' && Number.isFinite(value);
 const map = L.map('map',{preferCanvas:true,attributionControl:false}).setView([18.2,-66.4],9);
 const combined = {
-  map:null,electionLayer:null,residencialesLayer:null,censusLayer:null,
+  map:null,electionLayer:null,residencialesLayer:null,viviendaPublicaLayer:null,censusLayer:null,
   censusCatalog:null,censusCatalogYear:null,censusRequest:0,censusYear:2024,
   transparency:35,breaks:[]
 };
@@ -55,6 +56,8 @@ let activeTab='electoral';
 map.createPane('residencialesPane');
 map.getPane('residencialesPane').style.zIndex='640';
 map.getPane('residencialesPane').style.pointerEvents='none';
+map.createPane('viviendaPublicaPane');
+map.getPane('viviendaPublicaPane').style.zIndex='660';
 
 function showError(message) {
   byId('error').textContent=message;
@@ -348,6 +351,8 @@ function drawCombinedElectoralLayer(bounds,fit=true) {
   combined.electionLayer=L.geoJSON(state.geoData,{style:featureStyle,onEachFeature}).addTo(combined.map);
   if(state.residencialesVisible&&combined.residencialesLayer)
     combined.residencialesLayer.addTo(combined.map).bringToFront();
+  if(state.viviendaPublicaVisible&&combined.viviendaPublicaLayer)
+    combined.viviendaPublicaLayer.addTo(combined.map).bringToFront();
   if(state.bundle) renderLegend('combined-election-legend','combined-election-note');
   if(fit&&!byId('combined-panel').hidden)
     combined.map.fitBounds(bounds||combined.electionLayer.getBounds(),{padding:[14,14]});
@@ -357,6 +362,8 @@ function drawLayer(bounds,fit=true) {
   if(state.activeLayer) map.removeLayer(state.activeLayer);
   state.activeLayer=L.geoJSON(state.geoData,{style:featureStyle,onEachFeature}).addTo(map);
   if(state.residencialesVisible&&state.residencialesLayer) state.residencialesLayer.addTo(map).bringToFront();
+  if(state.viviendaPublicaVisible&&state.viviendaPublicaLayer)
+    state.viviendaPublicaLayer.addTo(map).bringToFront();
   const electoralVisible=!byId('electoral-panel').hidden;
   if(fit&&electoralVisible) map.fitBounds(bounds||state.activeLayer.getBounds(),{padding:[14,14]});
   if(combined.map)
@@ -590,6 +597,28 @@ async function ensureResidencialesLayers() {
     combined.residencialesLayer=makeResidencialesLayer(data,'combinedResidencialesPane');
 }
 
+function makeViviendaPublicaLayer(data,pane) {
+  return L.geoJSON(data,{
+    pointToLayer:(feature,latlng)=>L.circleMarker(latlng,{
+      pane,radius:5,weight:1,color:'#fff',fillColor:'#166534',fillOpacity:.9
+    }),
+    onEachFeature:(feature,layer)=>{
+      const {Nombre,Municipio}=feature.properties;
+      const popup=document.createElement('div');
+      popup.textContent=[Nombre,Municipio].filter(Boolean).join(' · ');
+      if(popup.textContent) layer.bindPopup(popup);
+    }
+  });
+}
+
+async function ensureViviendaPublicaLayers() {
+  const data=await fetchJSON('data/vivienda_publica.geojson');
+  if(!state.viviendaPublicaLayer)
+    state.viviendaPublicaLayer=makeViviendaPublicaLayer(data,'viviendaPublicaPane');
+  if(combined.map&&!combined.viviendaPublicaLayer)
+    combined.viviendaPublicaLayer=makeViviendaPublicaLayer(data,'combinedViviendaPublicaPane');
+}
+
 function wireControls() {
   document.querySelectorAll('[data-combined-census-year]').forEach(button=>{
     button.addEventListener('click',()=>{
@@ -658,6 +687,27 @@ function wireControls() {
         document.querySelectorAll('[data-residenciales-toggle]').forEach(item=>{
           item.classList.toggle('is-active',state.residencialesVisible);
           item.setAttribute('aria-pressed',String(state.residencialesVisible));
+        });
+      } catch(error) {
+        showError(error.message);
+      }
+    });
+  });
+  document.querySelectorAll('[data-vivienda-publica-toggle]').forEach(button=>{
+    button.addEventListener('click',async()=>{
+      try {
+        await ensureViviendaPublicaLayers();
+        state.viviendaPublicaVisible=!state.viviendaPublicaVisible;
+        if(state.viviendaPublicaVisible) {
+          state.viviendaPublicaLayer.addTo(map).bringToFront();
+          if(combined.map) combined.viviendaPublicaLayer.addTo(combined.map).bringToFront();
+        } else {
+          map.removeLayer(state.viviendaPublicaLayer);
+          if(combined.viviendaPublicaLayer) combined.map.removeLayer(combined.viviendaPublicaLayer);
+        }
+        document.querySelectorAll('[data-vivienda-publica-toggle]').forEach(item=>{
+          item.classList.toggle('is-active',state.viviendaPublicaVisible);
+          item.setAttribute('aria-pressed',String(state.viviendaPublicaVisible));
         });
       } catch(error) {
         showError(error.message);
@@ -995,12 +1045,18 @@ async function showCombinedMap() {
     combined.map.getPane('combinedCensusPane').style.zIndex='450';
     combined.map.createPane('combinedResidencialesPane');
     combined.map.getPane('combinedResidencialesPane').style.zIndex='640';
+    combined.map.createPane('combinedViviendaPublicaPane');
+    combined.map.getPane('combinedViviendaPublicaPane').style.zIndex='660';
   }
   combined.map.invalidateSize({pan:false});
   if(!combined.electionLayer) drawCombinedElectoralLayer(null,true);
   if(state.residencialesVisible) {
     await ensureResidencialesLayers();
     combined.residencialesLayer.addTo(combined.map).bringToFront();
+  }
+  if(state.viviendaPublicaVisible) {
+    await ensureViviendaPublicaLayers();
+    combined.viviendaPublicaLayer.addTo(combined.map).bringToFront();
   }
   if(combined.censusCatalogYear!==combined.censusYear||!combined.censusLayer)
     await loadCombinedCensusData();
