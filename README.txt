@@ -67,12 +67,12 @@ methodology/METHODOLOGY.txt before interpreting results.
 
 The 2012 Python backfill uses the same formulas and has focused synthetic
 tests. The 2016-2024 R build follows the pinned package methods and has
-independent arithmetic checks in the code, but a full rebuild and native R
-tests have not been completed. An earlier attempt reported an application-
-control block; the latest focused test failed loading the bundled rlang.dll
-("The specified procedure could not be found"). The root cause is unresolved.
-Representative outputs were independently checked; that does not replace a
-successful full rebuild.
+independent arithmetic checks in the code. On 2026-11-19 the native R tests,
+full rebuild and persistent validation passed in a separate workspace using
+the local R 4.5.2 runtime and pinned areal source. All six rebuilt
+full_dataset.csv files were byte-identical to the existing project outputs.
+This confirms reproducibility of those outputs, not the validity of all
+modeling assumptions.
 
 BUILD AND TEST COMMANDS
 -----------------------
@@ -84,12 +84,14 @@ Run commands from the project root:
   python scripts/build_2012.py
   python scripts/build_2012.py --refresh-metadata
   python scripts/build_census_map.py
-  & 'C:\Program Files\R\R-4.6.2\bin\Rscript.exe' scripts\build.R
-  & 'C:\Program Files\R\R-4.6.2\bin\Rscript.exe' scripts\export_map.R
-  & 'C:\Program Files\R\R-4.6.2\bin\Rscript.exe' scripts\validate.R
-  & 'C:\Program Files\R\R-4.6.2\bin\Rscript.exe' tests\test_method.R
+  & '.\.runtime\R\bin\Rscript.exe' tests\test_method.R
+  & '.\.runtime\R\bin\Rscript.exe' scripts\build.R
+  & '.\.runtime\R\bin\Rscript.exe' scripts\validate.R
 
-Rscript is not currently on PATH in this environment, so the commands above
-use its installed full path. The 2016-2024 R scripts use the local
-.runtime/R-library. Resolve the current package DLL load failure before
-rebuilding.
+The local Windows runtime uses R 4.5.2 with .runtime/R-library. R 4.6.2
+failed to load that library's rlang DLL; do not mix it with this library.
+The local runtime is not included in the published repository. A different
+machine needs a compatible R installation and package library, including the
+pinned areal source. The build overwrites generated outputs and map data;
+back them up before rebuilding. The build runs scripts/export_map.R itself;
+that script depends on variables initialized by the build.

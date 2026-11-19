@@ -1,13 +1,34 @@
 AREAL PREKEY UNIKEY: METHOD AND LIMITATIONS
 =========================================
-Reference: Prener and Revord (2019), areal: An R package for areal weighted
+AUTHORITATIVE METHOD SOURCE
+---------------------------
+The upstream chris-prener/areal repository is the authority for areal
+interpolation mechanics:
+https://github.com/chris-prener/areal
+Pinned commit:
+https://github.com/chris-prener/areal/tree/07bda84887d9f2272babe91c2ccc1e438f27f162
+The repository URL and commit are recorded in project.json and
+methodology/areal/UPSTREAM.txt. The pinned source is vendored in
+methodology/areal/source. The package's areal-weighted-interpolation vignette
+and these source functions are normative:
+  R/aw_interpolate.R
+  R/aw_intersect.R
+  R/aw_total.R
+  R/aw_weight.R
+  R/aw_calculate.R
+  R/aw_aggregate.R
+
+The JOSS article is supporting explanation and citation, not a substitute for
+the pinned repository's implementation:
+Prener and Revord (2019), areal: An R package for areal weighted
 interpolation, JOSS 4(37), 1221, DOI 10.21105/joss.01221.
 The paper is retained as methodology/areal/joss.01221.pdf under its CC BY 4.0
-license. The package source is retained in methodology/areal/source at commit
-07bda84887d9f2272babe91c2ccc1e438f27f162. The article and package vignette
-explain SUM/TOTAL choices and the difference between intensive rates and
-ratios of extensive outputs. This project implements the package's native
-manual workflow. The package source is GPL-3 licensed.
+license. The package source is GPL-3 licensed.
+
+The areal repository defines the interpolation workflow; it does not choose
+this project's boundary vintages, variable classifications, or whether SUM
+or TOTAL is substantively appropriate. Those are project-specific decisions
+documented below.
 
 1. SOURCE AND TARGET GEOGRAPHIES
 ACS five-year data ending in 2012 (2008-2012), 2016 (2012-2016), 2020
@@ -59,12 +80,20 @@ target/source column conflicts. The build additionally checks unique keys,
 valid/nonempty positive-area geometries, matching GEOIDs, target overlap,
 and election matches. Zero-area boundary contacts are not allocation links.
 
-3. NATIVE MANUAL WORKFLOW
+3. AREAL REPOSITORY WORKFLOW
 For 2016-2024, compute aw_intersect once and reuse that original
 overlay for all variables. Compute denominators with aw_total and weights
 with aw_weight. Each variable is then processed with native aw_calculate
 and aw_aggregate. Reusing the intersection prevents thousands of redundant
-spatial overlays; the formulas and package calculations are unchanged.
+spatial overlays; each operation is implemented by the pinned package.
+
+The 2012 Python backfill uses the same operation sequence because its source
+data are read from ACS Summary File sequences. Its intersection areas,
+denominators, weights, weighted values, and target sums correspond to the
+pinned aw_intersect, aw_total, aw_weight, aw_calculate, and aw_aggregate
+functions, respectively. It is an alternate data-ingestion implementation,
+not a different methodological authority; the focused synthetic tests check
+the same SUM, TOTAL, intensive, missing, and uncovered cases.
 Every field is checked independently against weighted rowsum arithmetic.
 Real population/median-income examples are also checked against the
 omnibus aw_interpolate in each geography, year, and applicable mode.
@@ -174,10 +203,13 @@ recomputed for each 2016-2024 year and target level using restored polygons.
 The historical R report describes broader checks from the earlier build; its
 intermediate overlays were not retained, and it is not a fresh validation.
 An earlier rebuild attempt reported Windows application control blocking a
-package DLL. The latest focused native R test failed loading the bundled
-rlang.dll with "The specified procedure could not be found." The root cause
-remains unresolved, so the 2016-2024 native tests and full rebuild are not
-verified. Incomplete-source observed totals are diagnostics, not proof of
+package DLL. R 4.6.2 failed to load the local library's rlang DLL, whereas
+the bundled R 4.5.2 successfully loads the packages and passes the focused
+native tests. On 2026-11-19, a full rebuild and persistent validation passed
+in a separate workspace with the pinned areal source installed; all six
+2016-2024 full_dataset.csv files matched the existing outputs byte-for-byte.
+Use a compatible R runtime and package library when rebuilding; see
+README.txt. Incomplete-source observed totals are diagnostics, not proof of
 conservation.
 
 Uniform spatial distribution is the central model assumption, as emphasized

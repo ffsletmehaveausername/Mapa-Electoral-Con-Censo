@@ -1,8 +1,13 @@
 AREAL PREKEY UNIKEY BUILD
+On 2026-11-19, the native R tests, a full rebuild and persistent validation
+passed in a separate workspace using the bundled R 4.5.2 and pinned areal
+source. The six rebuilt 2016-2024 full_dataset.csv files were byte-identical
+to the existing project files. Existing outputs and map data were not replaced.
+
 The 2016-2024 entries below are historical, not a fresh native R rebuild.
-An earlier attempt reported an application-control block. The latest focused
-native test (2026-11-19) failed loading rlang.dll: "The specified procedure
-could not be found." Root cause unresolved; no full rebuild was run.
+An earlier attempt reported an application-control block. A subsequent
+focused native test under R 4.6.2 failed loading rlang.dll: "The specified
+procedure could not be found." No full rebuild was run at that time.
 Representative 2016-2024 population and median-income estimates were
 independently checked against restored original polygons.
 areal version: 0.1.8.9000

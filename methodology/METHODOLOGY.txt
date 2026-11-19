@@ -203,10 +203,13 @@ recomputed for each 2016-2024 year and target level using restored polygons.
 The historical R report describes broader checks from the earlier build; its
 intermediate overlays were not retained, and it is not a fresh validation.
 An earlier rebuild attempt reported Windows application control blocking a
-package DLL. The latest focused native R test failed loading the bundled
-rlang.dll with "The specified procedure could not be found." The root cause
-remains unresolved, so the 2016-2024 native tests and full rebuild are not
-verified. Incomplete-source observed totals are diagnostics, not proof of
+package DLL. R 4.6.2 failed to load the local library's rlang DLL, whereas
+the bundled R 4.5.2 successfully loads the packages and passes the focused
+native tests. On 2026-11-19, a full rebuild and persistent validation passed
+in a separate workspace with the pinned areal source installed; all six
+2016-2024 full_dataset.csv files matched the existing outputs byte-for-byte.
+Use a compatible R runtime and package library when rebuilding; see
+README.txt. Incomplete-source observed totals are diagnostics, not proof of
 conservation.
 
 Uniform spatial distribution is the central model assumption, as emphasized

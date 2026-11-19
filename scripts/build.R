@@ -224,7 +224,7 @@ save_csv(bind_rows(lapply(rates, function(x) data.frame(
   native_intensive = "target-overlap-area weighted source percentage",
   derived_ratio = "100 * allocated numerator / allocated denominator; separate estimand"
 ))), "outputs/rate_dictionary.csv")
-source("export_map.R")
+source("scripts/export_map.R")
 inputs <- sort(list.files("data", recursive = TRUE, full.names = TRUE))
 save_csv(data.frame(path = inputs, bytes = file.info(inputs)$size,
   sha256 = vapply(inputs, function(path) digest::digest(file = path, algo = "sha256"), character(1))),
