@@ -1,0 +1,193 @@
+AREAL PREKEY UNIKEY: METHOD AND LIMITATIONS
+=========================================
+Reference: Prener and Revord (2019), areal: An R package for areal weighted
+interpolation, JOSS 4(37), 1221, DOI 10.21105/joss.01221.
+The paper is retained as methodology/areal/joss.01221.pdf under its CC BY 4.0
+license. The package source is retained in methodology/areal/source at commit
+07bda84887d9f2272babe91c2ccc1e438f27f162. The article and package vignette
+explain SUM/TOTAL choices and the difference between intensive rates and
+ratios of extensive outputs. This project implements the package's native
+manual workflow. The package source is GPL-3 licensed.
+
+1. SOURCE AND TARGET GEOGRAPHIES
+ACS five-year data ending in 2012 (2008-2012), 2016 (2012-2016), 2020
+(2016-2020), and 2024 (2020-2024) are joined to matching TIGER block groups
+by 12-digit GEOID.
+The electoral and TIGER source polygons were restored from the related
+PREKEY-MAP-AREAL project and checked against its input manifest. Areas are
+calculated after projection to EPSG:32161.
+PREKEY targets use the 2011 precinct plan for 2016/2020 and the 2025-named
+plan for 2024. UNIKEY targets use Uni_CEE_2016, Uni_CEE_2020 and
+Uni_CEE_2025 respectively, exactly as assigned in the source project.
+These assignments are explicit, not evidence of election-day validity.
+Repeated polygon features with the same PREKEY+UNIKEY are dissolved by key.
+Distinct target pairs are checked for overlapping area: >1 m2 stops the
+build, while smaller numerical slivers are reported, not silently modified.
+Unit and precinct overlays are computed independently directly from BGs.
+Units are not forcibly clipped to precincts, and their independently
+interpolated values need not aggregate to the precinct-plan estimates.
+PREKEY identifies the precinct geography; PREKEY+UNIKEY identifies voting
+units nested within a precinct. Not every voting unit is a geographic area.
+Non-geographic units therefore have election records but no polygon to which
+ACS data can be apportioned; this is expected, not a missing allocation.
+The 2012 estimates use the sequence-based ACS Summary File and the separate
+scripts/build_2012.py implementation. That builder applies the same SUM, TOTAL, and
+target-area intensive weights and strict missing-value propagation described
+below. Its targets are the restored 2011 precinct and 2012 voting-unit
+shapefiles. Two invalid unit geometries (038-18 and 020-10) are repaired
+only after checking that their areas do not materially change.
+It includes 1,877 estimate variables and lists 155 unavailable variables in
+outputs/2012/omitted_variables.csv.
+Variable numbers alone do not establish comparability across years: category
+definitions can change. The 2012 labels, descriptions, and universes now
+come from 2012 Census metadata rather than inherited 2016 descriptions.
+The 2012 numerical outputs were rebuilt after correcting a bug that discarded
+valid negative estimates in four income variables. ACS missing-value sentinels
+remain missing; genuine negative estimates are retained.
+2012 election returns are read from the canonical workbook at
+data/electoral/source/Electionspuertorico.com/2012/Unidades.xls, not from the legacy
+map payload. The workbook contains 1,847 distinct
+PREKEY+UNIKEY return pairs; 314 use UNIKEY 77-80 and have no matching retained
+unit polygon. They remain in the election dataset with missing spatial SES.
+This project has no 2008 ACS five-year/block-group SES layer or 2008 analysis
+output. The original 2020 and 2024 colegio returns are retained separately
+for analysis; there are no colegio polygons or colegio-level SES allocations.
+
+2. REQUIRED DATA VALIDATION
+ar_validate checks sf objects, shared planar CRS, required variables, and
+target/source column conflicts. The build additionally checks unique keys,
+valid/nonempty positive-area geometries, matching GEOIDs, target overlap,
+and election matches. Zero-area boundary contacts are not allocation links.
+
+3. NATIVE MANUAL WORKFLOW
+For 2016-2024, compute aw_intersect once and reuse that original
+overlay for all variables. Compute denominators with aw_total and weights
+with aw_weight. Each variable is then processed with native aw_calculate
+and aw_aggregate. Reusing the intersection prevents thousands of redundant
+spatial overlays; the formulas and package calculations are unchanged.
+Every field is checked independently against weighted rowsum arithmetic.
+Real population/median-income examples are also checked against the
+omnibus aw_interpolate in each geography, year, and applicable mode.
+
+Let A_ij be source i / target j intersection area, A_i the original source
+area, and C_i = sum_j A_ij. All sums use positive-area intersections.
+
+EXTENSIVE TOTAL: w_ij = A_ij / A_i; target_j = sum_i(source_i * w_ij).
+This allocates only the fraction covered by the supplied target polygons.
+EXTENSIVE SUM: w_ij = A_ij / C_i; target_j = sum_i(source_i * w_ij).
+This distributes the entire value of each source with some intersection
+among its covered targets. A source without overlap is not distributed.
+SUM is justified if full allocation is intended despite boundary mismatch;
+TOTAL is justified if omitted areas should remain unallocated. The paper
+does not choose for this application's coastal or missing-unit geography.
+Both outputs are therefore retained without claiming one universally true.
+Coverage fractions and totals let the analyst make the substantive choice.
+The current Combined map uses direct ACS block-group estimates and does not
+display or switch among these apportioned methods.
+
+INTENSIVE: w_ij = A_ij / sum_i A_ij for each target j.
+target_j = sum_i(source_i * w_ij).
+The native intensive mode always uses weight='sum'; TOTAL is not valid for
+the package's intensive interpolation. Weights sum to 1 on each covered
+target. This is used for source rates, means, medians, per-capita values,
+and other nonadditive statistics classified as intensive by the project.
+There is no 'median apportionment' algorithm in areal: interpolating source
+medians produces an area-weighted source-median ESTIMATE, not the exact
+median of target residents. Per-capita/mean estimates are likewise native
+area-weighted source values, not population/household-weighted reconstructions.
+These outputs are separate in intensive_estimates.csv and labeled on the map.
+The Census Data tab displays direct ACS source estimates and selected derived
+ratios on their matching TIGER/Line block-group boundaries for 2012, 2016,
+2020, and 2024. Its block-group payloads are exported by scripts/build_census_map.py
+and checked for exact GEOID coverage against each boundary vintage. Derived
+percentages are calculated as ratios of the source block-group numerator and
+denominator estimates; they are not interpolated values. The map displays
+estimates, not MOEs.
+
+The Combined tab draws direct block-group ACS estimates on matching
+TIGER/Line boundaries above the election map. Its electoral year, race, and
+geography controls govern only the electoral polygons; its ACS/TIGER vintage
+and indicator govern only the block-group overlay. The transparency control
+changes the overlay's visual opacity, not its values or geographic allocation.
+No ACS estimate is apportioned to the electoral polygons in this view.
+
+The apportioned PREKEY and PREKEY+UNIKEY estimates remain in the analysis
+datasets and method-specific outputs; the 2012 electoral catalog and table
+payloads are exported by scripts/build_2012.py alongside its CSVs. Direct block-group
+values and apportioned electoral estimates are different products and should
+not be compared as if they were measured on the same geography. Map
+classifications are display quantiles, not substantive thresholds; bins are
+recomputed for each selected vintage/geography and are not directly comparable
+by color across selections.
+
+4. VARIABLE ASSIGNMENT AND DERIVED RATES
+The complete usable estimate-field catalog from the copied ACS collection
+is included, not a prior small SES list. Source variables whose table/label
+indicate median, mean, average, per capita, quartiles, quintile limits,
+Gini or income shares are intensive. Aggregate monetary amounts are
+extensive amounts; aggregate numbers of rooms/vehicles are extensive counts.
+Remaining fields are
+count candidates; percentage-band categories in housing/poverty tables
+are counts of households/people, not numeric percentages themselves.
+The explicit source dictionary records every assignment for review.
+Only estimate fields (E) are interpolated. MOEs and annotations remain
+available at source in data/census_socioeconomic/acs/, never treated as counts.
+No target MOE is claimed: the paper/package do not supply an ACS uncertainty
+propagation method. The source universe is retained where the API supplied
+it; missing 2016 universes are explicitly flagged, not guessed.
+
+Selected interpretable rates have a separate explicit rate_dictionary:
+education (25+), poverty (C17002 below 1.0), housing tenure/vacancy, $100K+
+households, SNAP, SSI, Social Security and public assistance.
+For each rate, interpolate source numerator/denominator-derived percentages
+as intensive variables AND export the ratio of allocated counts separately
+for both extensive modes. These are different estimands, as the vignette
+warns. They are never silently swapped in the map. Denominator <=0 gives
+missing, not zero, and missing source components remain missing.
+Unavailable source rate ingredients produce a documented all-missing rate.
+
+5. MISSING VALUES AND INCOMPLETE TARGET GEOGRAPHY
+ACS numeric missing/suppression sentinels are already blank in cleaned
+source tables; raw responses/annotations remain copied for provenance.
+Native sum aggregation propagates NA for every target with a positive-area
+contribution from a missing source. No missing source is replaced with
+zero, dropped, or reweighted away. True source zero remains zero.
+An available source table can still contain partially missing estimates.
+No positive-area intersection gives missing target SES.
+
+Election and polygon keys are outer-joined. Election rows for non-geographic
+voting units remain in full and method-specific datasets without areal ACS
+values; no spatial location, SES count or median is invented. A no-polygon
+status records that a spatial allocation is unavailable, not necessarily a
+boundary-data defect. Polygon-only units are retained too, with missing
+election fields. UNIKEY alone is not a unique key. Votes are copied by
+PREKEY / PREKEY+UNIKEY and never apportioned. The PREKEY precinct geography
+and UNIKEY unit identifier serve different levels of analysis.
+
+6. CHECKS AND RESEARCH LIMITATIONS
+Python tests compare SUM/TOTAL/intensive to known synthetic results and
+missing propagation. The 2012 rebuild checks extensive conservation on
+complete-source fields. Its four affected negative-income variables were
+checked against recomputed overlays for both target levels. Representative
+population SUM/TOTAL and median-income intensive estimates were independently
+recomputed for each 2016-2024 year and target level using restored polygons.
+The historical R report describes broader checks from the earlier build; its
+intermediate overlays were not retained, and it is not a fresh validation.
+An earlier rebuild attempt reported Windows application control blocking a
+package DLL. The latest focused native R test failed loading the bundled
+rlang.dll with "The specified procedure could not be found." The root cause
+remains unresolved, so the 2016-2024 native tests and full rebuild are not
+verified. Incomplete-source observed totals are diagnostics, not proof of
+conservation.
+
+Uniform spatial distribution is the central model assumption, as emphasized
+by the PDF. Land/water, parks, institutions and commercial areas can violate
+it. No dasymetric population redistribution is claimed. Coverage equality,
+arithmetic conservation and successful tests do not prove historical boundary
+validity, household placement, target uncertainty or true target medians.
+All outputs remain at full precision; decimal extensive estimates are not
+rounded into purported observed people/household counts.
+Nested categories/overlapping ACS totals must not be added together.
+Monetary estimates are in vintage-specific dollars, not inflation-adjusted
+across years. Urban/rural housing remains unavailable in the chosen ACS-only
+collection; no unsupported year-specific rural/urban value is invented.

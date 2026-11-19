@@ -1,0 +1,6 @@
+/.runtime/
+/archive/
+**/__pycache__/
+*.py[cod]
+.Rhistory
+.RData

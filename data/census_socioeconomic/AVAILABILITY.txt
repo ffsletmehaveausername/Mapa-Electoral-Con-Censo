@@ -1,0 +1,249 @@
+CENSUS AVAILABILITY INVENTORY - PUERTO RICO
+Research date: November 12, 2026
+Requested years: 2008, 2012, 2016, 2020, 2024
+
+SUMMARY
+
+The Census API key works. API metadata and official TIGER directory
+listings were checked and compared with files in this workspace. The
+2012 backfill has since added the official ACS 2008-2012 Summary File
+inputs and TIGER 2012 Puerto Rico block-group shapefile, and generated
+PREKEY and UNIKEY estimates. These public files do not require the API key.
+
+"Missing" below means the matching Census vintage is absent from this
+workspace. It does not mean you lack a general municipio basemap.
+
+For electoral analysis, municipio-level ACS data is the simplest complete
+geographic comparison: Puerto Rico municipios are Census county-equivalent
+geographies. The local map already has a municipio basemap, but its boundary
+vintage is not documented here. Use municipio GEOIDs and verify the geometry
+vintage rather than assuming boundary files are identical across years.
+
+
+1. SHAPEFILES AND BOUNDARIES
+
+Layer                         2008       2012       2016       2020       2024
+-----------------------------------------------------------------------------
+Block groups                  Missing    HAVE       HAVE       HAVE       HAVE
+Census tracts                 Missing    Missing    Missing    Missing    Missing
+Census blocks                 Missing    Missing    Missing    Missing    Missing
+Barrios / county subdivisions Missing    Missing    Missing    Missing    Missing
+Subbarrios                    Unverified Missing    Missing    Missing    Missing
+Census places                 Missing    Missing    Missing    Missing    Missing
+PUMAs                         Missing    Missing    Missing    Missing    Missing
+House / Senate districts      Missing    Missing    Missing    Missing    Missing
+
+Missing = official Puerto Rico archive links confirmed; not held locally.
+HAVE = held locally; 2012 is the source TIGER shapefile, while 2016-2024
+       are block-group GeoJSON layers in the web map.
+Unverified = availability was not established.
+
+PUMAs are larger statistical areas used for public-use microdata.
+
+Additional confirmed files include roads, water features, landmarks,
+and technical geographic layers. Availability varies by vintage.
+Some technical files are supporting tables, not standalone shapefiles.
+
+National archives also exist for municipios/counties, states, ZCTAs,
+urban areas, and metro areas. Their Puerto Rico contents were not
+inspected, so those archives are not confirmed Puerto Rico layers.
+
+The 2008 block-group and tract filenames use Census 2000 delineations.
+A boundary file's release year does not necessarily mean its geography
+was newly delineated that year. Likewise, 2024 census blocks are not a
+new 2024 population census.
+
+The detailed boundary CSV records confirmed archive links, existing
+layers, duplicate/alias notes, and unverified listings. Some directories
+were rate-limited or returned blocked pages. A listing with no archive
+links is marked unverified, not treated as proof that no files exist.
+
+
+2. STATISTICAL RELEASES BY REQUESTED YEAR
+
+2008
+  Products:
+    - 2008 ACS one-year estimates.
+    - 2006-2008 ACS three-year estimates.
+  Limitations:
+    - There is no 2008 ACS five-year release.
+    - Municipio coverage is incomplete: 12 municipios in the one-year
+      release and 65 in the three-year release.
+    - No tract or block-group estimates in these releases.
+
+2012
+  Product:
+    - 2008-2012 ACS five-year estimates.
+  Coverage:
+    - All 78 municipios.
+    - The API supports census tracts.
+    - TIGER 2012 block groups and the ACS Summary File are now held locally.
+      Apportioned PREKEY and UNIKEY outputs are in outputs/2012/.
+  Limitation:
+    - Block-group estimates require the sequence-based ACS Summary File
+      rather than the standard API block-group endpoint.
+  Analysis option:
+    - Municipio-level ACS and electoral results can be joined directly
+      using municipio geography; no block-group-to-electoral overlay is
+      needed at this level.
+
+2016
+  Product:
+    - 2012-2016 ACS five-year estimates.
+  Coverage:
+    - Block-group data available.
+    - Municipio-level estimates are available for the 78 municipios.
+    - Substantial data already downloaded locally.
+
+2020
+  Products:
+    - 2016-2020 ACS five-year estimates.
+    - 2020 Decennial Census products.
+  Coverage:
+    - ACS supports block groups.
+    - Municipio-level estimates are available for the 78 municipios.
+    - Decennial products provide selected counts down to blocks.
+  Limitation:
+    - No ordinary 2020 ACS one-year release. Experimental estimates
+      are a separate product, not an ordinary replacement.
+
+2024
+  Product:
+    - 2020-2024 ACS five-year estimates.
+  Coverage:
+    - Block-group data available.
+    - Municipio-level estimates are available for the 78 municipios.
+    - Substantial data already downloaded locally.
+
+IMPORTANT:
+  An ACS five-year label is the END year of a five-year estimate period.
+  A TIGER vintage describes geographic boundaries, not the observation
+  period of the statistics. Match geographic identifiers and applicable
+  boundary definitions before joining data to a map.
+
+
+3. MISSING TOPICS WITH CONFIRMED PUERTO RICO ESTIMATES
+
+The following example tables are absent from both local raw downloads
+and cleaned tables. Small API checks confirmed Puerto Rico-level values.
+These checks do NOT establish that every table is published for every
+tract or block group.
+
+Topic                      Example tables                 Confirmed years
+-----------------------------------------------------------------------------
+Race                       B02001                         All five
+Birthplace / migration     B05002, B06001PR, B07001PR       All five
+Commuting / vehicle access B08301, B08134, B08201           All five
+Veteran status             B21001                         All five
+Language                   C16001 (2008); B16001 (later)   All five
+Employment                 B23025                         2012/2016/2020/2024
+Disability                 B18101                         2012/2016/2020/2024
+Health insurance           B27001                         2012/2016/2020/2024
+Computers / internet       B28001, B28002, B28003           2020/2024
+
+Use the Puerto Rico-specific migration/birthplace tables where applicable,
+rather than assuming a table titled "in the United States" covers Puerto
+Rico in the same way.
+
+Your existing population, income, poverty, education, and housing tables
+were excluded from the missing-table inventory when their table IDs
+were present in either raw or cleaned files. Metadata files alone were
+not counted as downloaded observations.
+
+Existing local ACS table counts:
+  2016: 490 raw table files with observations; 201 cleaned CSV tables.
+  2020: 504 raw table files with observations; 211 cleaned CSV tables.
+  2024: 553 raw table files with observations; 252 cleaned CSV tables.
+
+The complete missing-table catalog contains 4,134 candidate table/year
+entries across the five selected releases. This is NOT a count of
+confirmed Puerto Rico tables. Catalog entries whose Puerto Rico coverage
+was not checked are explicitly labeled as unverified.
+
+
+4. RECOMMENDED ANALYSIS DESIGN AND NEXT ADDITIONS
+
+Use three complementary geography levels rather than choosing only one:
+
+  1. Municipio: join municipio-level ACS estimates to electoral results
+     aggregated to municipio. This is the clearest full-coverage comparison
+     and can include returns from non-geographic voting units through their
+     precinct/municipio totals.
+  2. PREKEY / precinct: retain precinct-level election results and estimate
+     socioeconomic values by overlaying block groups with precinct polygons.
+     Precincts vary substantially in size, so some estimates will be coarse.
+  3. PREKEY+UNIKEY / voting unit: retain unit-level results and estimate
+     socioeconomic values for units with polygons. Non-geographic units
+     remain in the election data but cannot receive a spatial SES estimate.
+
+Municipio results provide a stable, directly joined baseline; PREKEY and
+UNIKEY add finer spatial detail through areal estimation. They are estimates,
+not direct ACS observations for those electoral areas. Keep boundary
+vintages and municipality GEOIDs explicit, and compare levels as distinct
+geographies rather than expecting their estimates to add up exactly.
+
+  1. 2008 block-group boundaries, if finer maps for that year are needed.
+  2. Census tracts for requested vintages, if tract-level analysis is useful.
+  3. Missing socioeconomic topics listed above.
+
+For 2008, block-group boundaries can be displayed, but the absence of a
+2008 ACS five-year release prevents a comparable ACS block-group data
+layer for that year.
+
+For 2008, the available one- and three-year ACS products cover only 12
+and 65 municipios, respectively; they do not provide a complete comparable
+municipio layer. Municipio-level five-year estimates cover all 78 municipios
+for 2012, 2016, 2020, and 2024.
+
+For 2012, block-group statistics require the separate Summary File workflow
+implemented in scripts/build_2012.py. It generated comparable estimates for 1,877
+variables; 155 unavailable variables are listed in
+outputs/2012/omitted_variables.csv. Its 2008-2012 ACS period overlaps the
+2012 election year and is a period-context association, not a causal measure.
+
+The remaining items are analysis recommendations; no additional bulk
+download was started for them.
+
+
+5. DETAILED CSV INVENTORIES
+
+Boundary availability:
+C:\Users\ricar\.copilot\session-state\9ac3615d-541b-46af-ab25-3bbdb8f0bac5\files\census-boundary-inventory.csv
+
+Missing statistical table catalog, with coverage labels:
+C:\Users\ricar\.copilot\session-state\9ac3615d-541b-46af-ab25-3bbdb8f0bac5\files\census-missing-table-catalog.csv
+
+
+6. OFFICIAL SOURCES
+
+TIGER archive:
+https://www2.census.gov/geo/tiger/
+
+2008 Puerto Rico TIGER directory:
+https://www2.census.gov/geo/tiger/TIGER2008/72_PUERTO_RICO/
+
+Other requested TIGER releases:
+https://www2.census.gov/geo/tiger/TIGER2012/
+https://www2.census.gov/geo/tiger/TIGER2016/
+https://www2.census.gov/geo/tiger/TIGER2020/
+https://www2.census.gov/geo/tiger/TIGER2024/
+
+ACS geography metadata:
+https://api.census.gov/data/2008/acs/acs3/geography.json
+https://api.census.gov/data/2012/acs/acs5/geography.json
+https://api.census.gov/data/2016/acs/acs5/geography.json
+https://api.census.gov/data/2020/acs/acs5/geography.json
+https://api.census.gov/data/2024/acs/acs5/geography.json
+
+ACS table catalogs:
+https://api.census.gov/data/2008/acs/acs3/groups.json
+https://api.census.gov/data/2012/acs/acs5/groups.json
+https://api.census.gov/data/2016/acs/acs5/groups.json
+https://api.census.gov/data/2020/acs/acs5/groups.json
+https://api.census.gov/data/2024/acs/acs5/groups.json
+
+2012 release notes, including the block-group Summary File restriction:
+https://www.census.gov/programs-surveys/acs/news/data-releases/2012/release.html
+
+2020 ACS one-year experimental release:
+https://www.census.gov/programs-surveys/acs/data/experimental-data/1-year.html

@@ -1,0 +1,9 @@
+year,acs_period_start,acs_period_end,key_level,geography_level,dataset_path,rows,polygon_rows,election_rows,no_polygon_rows,no_election_rows
+2012,2008,2012,prekey,precinct,outputs/2012/prekey/full_dataset.csv,110,110,110,0,0
+2012,2008,2012,unikey,voting_unit,outputs/2012/unikey/full_dataset.csv,1848,1534,1847,314,1
+2016,2012,2016,prekey,precinct,outputs/2016/prekey/full_dataset.csv,110,110,110,0,0
+2016,2012,2016,unikey,voting_unit,outputs/2016/unikey/full_dataset.csv,1852,1500,1852,352,0
+2020,2016,2020,prekey,precinct,outputs/2020/prekey/full_dataset.csv,110,110,110,0,0
+2020,2016,2020,unikey,voting_unit,outputs/2020/unikey/full_dataset.csv,1854,1363,1854,491,0
+2024,2020,2024,prekey,precinct,outputs/2024/prekey/full_dataset.csv,114,114,114,0,0
+2024,2020,2024,unikey,voting_unit,outputs/2024/unikey/full_dataset.csv,2092,1291,2092,801,0

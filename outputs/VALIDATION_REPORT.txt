@@ -1,0 +1,54 @@
+AREAL PREKEY UNIKEY BUILD
+The 2016-2024 entries below are historical, not a fresh native R rebuild.
+An earlier attempt reported an application-control block. The latest focused
+native test (2026-11-19) failed loading rlang.dll: "The specified procedure
+could not be found." Root cause unresolved; no full rebuild was run.
+Representative 2016-2024 population and median-income estimates were
+independently checked against restored original polygons.
+areal version: 0.1.8.9000
+Pinned source: 07bda84887d9f2272babe91c2ccc1e438f27f162
+Native aw_intersect -> aw_total -> aw_weight -> aw_calculate -> aw_aggregate.
+All interpolation uses original geometry in EPSG:32161.
+Extensive SUM and TOTAL exported independently; intensive uses target-overlap-area weights.
+Missing values propagate on every positive-area overlap; no NA-to-zero replacement.
+YEAR 2016
+2016 prekey building original-geometry overlay
+2016 prekey sum: native package interpolation
+2016 prekey total: native package interpolation
+2016 prekey intensive: native package interpolation
+PASS 2016 prekey: 110 polygons; 110 election keys; 0 missing polygons; 4243 positive intersections; native/manual agreement.
+2016 unikey building original-geometry overlay
+2016 unikey sum: native package interpolation
+2016 unikey total: native package interpolation
+2016 unikey intensive: native package interpolation
+PASS 2016 unikey: 1500 polygons; 1852 election keys; 352 missing polygons; 10767 positive intersections; native/manual agreement.
+YEAR 2020
+2020 prekey building original-geometry overlay
+2020 prekey sum: native package interpolation
+2020 prekey total: native package interpolation
+2020 prekey intensive: native package interpolation
+PASS 2020 prekey: 110 polygons; 110 election keys; 0 missing polygons; 4210 positive intersections; native/manual agreement.
+2020 unikey building original-geometry overlay
+2020 unikey sum: native package interpolation
+2020 unikey total: native package interpolation
+2020 unikey intensive: native package interpolation
+PASS 2020 unikey: 1363 polygons; 1854 election keys; 491 missing polygons; 10231 positive intersections; native/manual agreement.
+YEAR 2024
+2024 prekey building original-geometry overlay
+2024 prekey sum: native package interpolation
+2024 prekey total: native package interpolation
+2024 prekey intensive: native package interpolation
+PASS 2024 prekey: 114 polygons; 114 election keys; 0 missing polygons; 4243 positive intersections; native/manual agreement.
+2024 unikey building original-geometry overlay
+2024 unikey sum: native package interpolation
+2024 unikey total: native package interpolation
+2024 unikey intensive: native package interpolation
+PASS 2024 unikey: 1291 polygons; 2092 election keys; 801 missing polygons; 10002 positive intersections; native/manual agreement.
+BUILD PASSED. Both geographies and all requested years; extensive and intensive datasets remain separate.
+
+2012 BACKFILL
+ACS 2008-2012 five-year Summary File block-group estimates; TIGER 2012 Puerto Rico block groups; EPSG:32161 area overlays.
+Election source: data/electoral/source/Electionspuertorico.com/2012/Unidades.xls (both workbook sheets).
+Voting-unit election records: 1847; no-polygon election records retained: 314.
+Estimate variables available: 1877; not available in the 2012 Summary File: 155.
+SUM, TOTAL, and target-area intensive estimates computed with positive-area intersections and strict missing-value propagation.

@@ -1,0 +1,17 @@
+{
+  "name": "AREAL PREKEY UNIKEY",
+  "years": [2016, 2020, 2024],
+  "analysis_crs": 32161,
+  "areal_commit": "07bda84887d9f2272babe91c2ccc1e438f27f162",
+  "port": 8768,
+  "unit_boundaries": [
+    {"year": 2016, "path": "data/geodata/unit_boundaries/Uni_CEE_2016/Uni_CEE_2016.shp", "prekey_field": "Precinto2", "unikey_field": "Unidad"},
+    {"year": 2020, "path": "data/geodata/unit_boundaries/Uni_CEE_2020/Uni_CEE_2020.shp", "prekey_field": "Precinto2", "unikey_field": "Unidad1"},
+    {"year": 2024, "path": "data/geodata/unit_boundaries/Uni_CEE_2025/Uni_CEE_2025.shp", "prekey_field": "Precinto", "unikey_field": "Unidad"}
+  ],
+  "precinct_boundaries": [
+    {"year": 2016, "path": "data/geodata/precinct_boundaries/Precintos_2011/Pre_CEE_2011.shp", "prekey_field": "Precinto2", "municipio_field": "MUNICIPIO"},
+    {"year": 2020, "path": "data/geodata/precinct_boundaries/Precintos_2011/Pre_CEE_2011.shp", "prekey_field": "Precinto2", "municipio_field": "MUNICIPIO"},
+    {"year": 2024, "path": "data/geodata/precinct_boundaries/Pre_CEE_2025/Pre_CEE_2025.shp", "prekey_field": "Precinto", "municipio_field": "Municipio"}
+  ]
+}
