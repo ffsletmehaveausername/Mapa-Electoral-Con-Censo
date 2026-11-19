@@ -327,7 +327,8 @@ button {
 
 .scope-controls { display: flex; gap: 12px; }
 .scope-controls .scope-btn { min-width: 120px; font-size: 1rem; }
-.overlay-btn { margin-left: auto; min-width: 170px; }
+.overlay-controls { display: flex; gap: 8px; margin-left: auto; }
+.overlay-btn { min-width: 170px; }
 
 .leaflet-container, .leaflet-tooltip { font-family: "Sora", "Avenir Next", Avenir, sans-serif; }
 [hidden] { display: none !important; }
@@ -358,5 +359,5 @@ button {
   .bottom-controls { align-items: stretch; flex-wrap: wrap; }
   .scope-controls { width: 100%; gap: 8px; }
   .scope-controls .scope-btn { min-width: 0; flex: 1 1 30%; }
-  .overlay-btn { margin-left: 0; }
+  .overlay-controls { width: 100%; margin-left: 0; justify-content: flex-end; flex-wrap: wrap; }
 }

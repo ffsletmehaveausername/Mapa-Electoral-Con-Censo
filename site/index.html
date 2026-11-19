@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Puerto Rico Electoral Map</title>
   <link rel="stylesheet" href="vendor/leaflet.css">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
   <div class="bg-shape bg-shape-a" aria-hidden="true"></div>
@@ -103,10 +103,12 @@
             <button type="button" class="scope-btn" data-scope="precinto">Precinto</button>
             <button type="button" class="scope-btn" data-scope="unidad">Unidad</button>
           </div>
-          <button type="button" id="residencialesToggle" class="scope-btn overlay-btn"
-            data-residenciales-toggle aria-pressed="false">Residenciales (2009)</button>
-          <button type="button" class="scope-btn overlay-btn"
-            data-vivienda-publica-toggle aria-pressed="false">Vivienda pública (2022)</button>
+          <div class="overlay-controls" role="group" aria-label="Map overlays">
+            <button type="button" id="residencialesToggle" class="scope-btn overlay-btn"
+              data-residenciales-toggle aria-pressed="false">Residenciales (2009)</button>
+            <button type="button" class="scope-btn overlay-btn"
+              data-vivienda-publica-toggle aria-pressed="false">Vivienda pública (2022)</button>
+          </div>
         </footer>
       </div>
 
@@ -160,10 +162,12 @@
             <button type="button" class="scope-btn" data-scope="precinto">Precinto</button>
             <button type="button" class="scope-btn" data-scope="unidad">Unidad</button>
           </div>
-          <button type="button" id="combinedResidencialesToggle" class="scope-btn overlay-btn"
-            data-residenciales-toggle aria-pressed="false">Residenciales (2009)</button>
-          <button type="button" class="scope-btn overlay-btn"
-            data-vivienda-publica-toggle aria-pressed="false">Vivienda pública (2022)</button>
+          <div class="overlay-controls" role="group" aria-label="Map overlays">
+            <button type="button" id="combinedResidencialesToggle" class="scope-btn overlay-btn"
+              data-residenciales-toggle aria-pressed="false">Residenciales (2009)</button>
+            <button type="button" class="scope-btn overlay-btn"
+              data-vivienda-publica-toggle aria-pressed="false">Vivienda pública (2022)</button>
+          </div>
         </footer>
       </div>
     </section>
