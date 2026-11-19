@@ -2,6 +2,7 @@
   "name": "AREAL PREKEY UNIKEY",
   "years": [2016, 2020, 2024],
   "analysis_crs": 32161,
+  "areal_repository": "https://github.com/chris-prener/areal",
   "areal_commit": "07bda84887d9f2272babe91c2ccc1e438f27f162",
   "port": 8768,
   "unit_boundaries": [

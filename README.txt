@@ -50,13 +50,20 @@ spatially apportioned.
 
 METHOD AND VALIDATION
 ---------------------
-The implementation follows the JOSS areal package's documented manual
-workflow: intersection, areal weights, value weighting, and aggregation.
-The paper and exact package source commit are retained in methodology/areal/.
-Both extensive SUM and TOTAL estimates are kept because the paper leaves the
-choice to the analyst's overlap assumptions. Intensive outputs are
-area-weighted estimates, not population-weighted reconstructions or exact
-target medians. Read methodology/METHODOLOGY.txt before interpreting results.
+The pinned upstream `areal` repository is the authority for interpolation
+mechanics: https://github.com/chris-prener/areal. Its repository, commit,
+source copy, and workflow are recorded in project.json and
+methodology/areal/UPSTREAM.txt. The JOSS paper is supporting context; the
+pinned package source and vignette define the operational method.
+
+The 2016-2024 R build calls the pinned package's native workflow. The 2012
+Python backfill parses the ACS Summary File and implements the same
+aw_intersect -> aw_total -> aw_weight -> aw_calculate -> aw_aggregate
+operations; it is not a separate interpolation method. Both extensive SUM
+and TOTAL estimates are kept because the package leaves that choice to the
+analyst's overlap assumptions. Intensive outputs are area-weighted estimates,
+not population-weighted reconstructions or exact target medians. Read
+methodology/METHODOLOGY.txt before interpreting results.
 
 The 2012 Python backfill uses the same formulas and has focused synthetic
 tests. The 2016-2024 R build follows the pinned package methods and has

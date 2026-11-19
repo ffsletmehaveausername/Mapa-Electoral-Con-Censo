@@ -453,6 +453,8 @@ def build_intersections(targets, source_geometries):
                     "overlap_m2": area,
                 })
 
+    # Mirrors the pinned areal workflow: aw_total -> aw_weight, followed by
+    # aw_calculate and aw_aggregate in interpolate().
     weights = {
         "sum": edge_area / source_covered[edge_source],
         "total": edge_area / np.asarray(source_areas[edge_source]),

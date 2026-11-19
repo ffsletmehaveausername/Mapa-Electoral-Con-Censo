@@ -1,14 +1,27 @@
+options(digits = 15)
 .libPaths(c(normalizePath(".runtime/R-library"), .libPaths()))
+config <- jsonlite::fromJSON("project.json")
+areal_pin <- readLines("methodology/areal/UPSTREAM.txt", warn = FALSE)
+expected_pin <- c(
+  paste0("repository=", config$areal_repository),
+  paste0("commit=", config$areal_commit)
+)
+if (!identical(areal_pin, expected_pin)) {
+  stop("The recorded areal repository/commit does not match project.json.", call. = FALSE)
+}
+vendored_git <- file.path("methodology/areal/source", ".git")
+if (file.exists(vendored_git) || dir.exists(vendored_git)) {
+  source_commit <- system2(
+    "git", c("-C", "methodology/areal/source", "rev-parse", "HEAD"), stdout = TRUE
+  )
+  if (!identical(source_commit, config$areal_commit)) {
+    stop("The vendored areal checkout does not match the pinned commit.", call. = FALSE)
+  }
+}
 suppressPackageStartupMessages(library(sf))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(areal))
 source("scripts/areal_helpers.R")
-options(digits = 15)
-config <- jsonlite::fromJSON("project.json")
-stopifnot(identical(
-  system2("git", c("-C", "methodology/areal/source", "rev-parse", "HEAD"), stdout = TRUE),
-  config$areal_commit
-))
 dir.create("outputs", showWarnings = FALSE)
 dir.create("map/site/data", recursive = TRUE, showWarnings = FALSE)
 report <- c("AREAL PREKEY UNIKEY BUILD", paste("areal version:", packageVersion("areal")),

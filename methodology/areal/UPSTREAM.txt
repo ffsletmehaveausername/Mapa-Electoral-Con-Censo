@@ -1,0 +1,2 @@
+repository=https://github.com/chris-prener/areal
+commit=07bda84887d9f2272babe91c2ccc1e438f27f162

@@ -1,3 +1,5 @@
+import json
+import subprocess
 import unittest
 import sys
 from pathlib import Path
@@ -12,6 +14,26 @@ import build_2012 as builder
 
 
 class ApportionmentTests(unittest.TestCase):
+    def test_areal_pin_matches_project_and_vendored_checkout(self):
+        project = json.loads((ROOT / "project.json").read_text(encoding="utf-8"))
+        pin = (ROOT / "methodology" / "areal" / "UPSTREAM.txt").read_text(
+            encoding="utf-8"
+        ).splitlines()
+        self.assertEqual(
+            pin,
+            [
+                f"repository={project['areal_repository']}",
+                f"commit={project['areal_commit']}",
+            ],
+        )
+        source = ROOT / "methodology" / "areal" / "source"
+        if (source / ".git").exists():
+            result = subprocess.run(
+                ["git", "-C", str(source), "rev-parse", "HEAD"],
+                check=True, capture_output=True, text=True,
+            )
+            self.assertEqual(result.stdout.strip(), project["areal_commit"])
+
     def test_negative_census_estimates_are_not_missing(self):
         self.assertEqual(builder.numeric("-23600"), -23600)
         self.assertTrue(np.isnan(builder.numeric("-666666666")))
@@ -19,7 +41,7 @@ class ApportionmentTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             builder.numeric("inf")
 
-    def test_paper_weights_missing_and_uncovered(self):
+    def test_areal_weights_missing_and_uncovered(self):
         source = {"a": box(0, 0, 10, 10), "b": box(10, 0, 20, 10)}
         targets = [
             {"TARGET_ID": "1", "geometry": box(0, 0, 5, 10)},
