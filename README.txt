@@ -23,12 +23,10 @@ Double-click map/start_map.bat to serve the offline map at
 http://127.0.0.1:8768/. Python 3.9 or newer is required. The map and Leaflet
 assets are local; no network basemap is used.
 
-The Census Data tab displays direct ACS estimates on matching TIGER/Line
-block-group boundaries for 2012, 2016, 2020, and 2024. The Combined tab layers
-those direct block-group estimates over the electoral map. The map does not
-display apportioned ACS estimates on electoral geographies; those remain in
-outputs/ for analysis. The map's HTML, CSS, and behavior are unchanged by the
-project reorganization.
+The Overlaid tab layers direct ACS estimates on matching TIGER/Line
+block-group boundaries over the electoral map. The map does not display
+apportioned ACS estimates on electoral geographies; those remain in outputs/
+for analysis.
 
 DATA AND RESULTS
 ----------------

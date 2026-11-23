@@ -217,9 +217,6 @@ button {
 }
 
 .map-wrap { position: relative; }
-#census-panel .legend { top: 10px; right: 12px; width: min(280px, 42%); }
-#block-group-panel .legend { top: 10px; right: 12px; width: min(280px, 42%); }
-.block-group-map { background: #fff; }
 .census-no-data { background: #c8c8c8; }
 
 .combined-map-layout {
@@ -341,8 +338,6 @@ button {
   .app-shell { grid-template-columns: 260px minmax(0, 1fr); }
   .totals-panel { min-height: 340px; }
   .legend { position: static; width: auto; margin: 12px; }
-  #census-panel .legend { width: auto; }
-  #block-group-panel .legend { width: auto; }
   .combined-map-layout { grid-template-columns: minmax(0, 1fr); }
   .combined-data-box { max-height: none; min-height: 0; }
 }

@@ -125,20 +125,17 @@ medians produces an area-weighted source-median ESTIMATE, not the exact
 median of target residents. Per-capita/mean estimates are likewise native
 area-weighted source values, not population/household-weighted reconstructions.
 These outputs are separate in intensive_estimates.csv and labeled on the map.
-The Census Data tab displays direct ACS source estimates and selected derived
-ratios on their matching TIGER/Line block-group boundaries for 2012, 2016,
-2020, and 2024. Its block-group payloads are exported by scripts/build_census_map.py
-and checked for exact GEOID coverage against each boundary vintage. Derived
-percentages are calculated as ratios of the source block-group numerator and
-denominator estimates; they are not interpolated values. The map displays
-estimates, not MOEs.
-
-The Combined tab draws direct block-group ACS estimates on matching
+The Overlaid tab draws direct block-group ACS estimates on matching
 TIGER/Line boundaries above the election map. Its electoral year, race, and
 geography controls govern only the electoral polygons; its ACS/TIGER vintage
 and indicator govern only the block-group overlay. The transparency control
 changes the overlay's visual opacity, not its values or geographic allocation.
 No ACS estimate is apportioned to the electoral polygons in this view.
+Block-group payloads are exported by scripts/build_census_map.py and checked
+for exact GEOID coverage against each boundary vintage. Derived percentages
+are calculated as ratios of the source block-group numerator and denominator
+estimates; they are not interpolated values. The map displays estimates, not
+MOEs.
 
 The apportioned PREKEY and PREKEY+UNIKEY estimates remain in the analysis
 datasets and method-specific outputs; the 2012 electoral catalog and table

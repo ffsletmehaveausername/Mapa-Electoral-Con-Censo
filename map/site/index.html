@@ -34,26 +34,6 @@
       <p id="status" role="status">Cargando mapa...</p>
       <p id="error" role="alert" hidden></p>
       </div>
-      <div id="block-group-sidebar" hidden>
-        <section class="totals-panel">
-          <h2>Census Data</h2>
-          <p id="block-group-vintage-label">ACS 2020–2024 · TIGER/Line 2024</p>
-          <p id="block-group-description" class="legend-note">Direct ACS estimates at block-group geography; not allocated to electoral areas.</p>
-        </section>
-        <section class="filters-panel">
-          <p class="label">ACS / TIGER/Line vintage</p>
-          <div class="year-buttons census-years" role="group" aria-label="ACS / TIGER/Line vintage">
-            <button type="button" class="year-btn is-active" data-block-group-year="2024" aria-pressed="true">2024</button>
-            <button type="button" class="year-btn" data-block-group-year="2020" aria-pressed="false">2020</button>
-            <button type="button" class="year-btn" data-block-group-year="2016" aria-pressed="false">2016</button>
-            <button type="button" class="year-btn" data-block-group-year="2012" aria-pressed="false">2012</button>
-          </div>
-          <label class="label" for="block-group-metric">Indicator</label>
-          <select id="block-group-metric" class="census-select"></select>
-        </section>
-        <p id="block-group-status" role="status" hidden></p>
-        <p id="block-group-error" role="alert" hidden></p>
-      </div>
       <div id="combined-controls" hidden>
         <section class="filters-panel">
           <h2>Direct ACS overlay</h2>
@@ -78,10 +58,8 @@
       <nav class="map-tabs" role="tablist" aria-label="Map data">
         <button type="button" class="map-tab-btn is-active" id="electoral-tab" role="tab"
           aria-selected="true" aria-controls="electoral-panel">Electoral</button>
-        <button type="button" class="map-tab-btn" id="block-group-tab" role="tab"
-          aria-selected="false" aria-controls="block-group-panel" tabindex="-1">Census Data</button>
         <button type="button" class="map-tab-btn" id="combined-tab" role="tab"
-          aria-selected="false" aria-controls="combined-panel" tabindex="-1">Combined</button>
+          aria-selected="false" aria-controls="combined-panel" tabindex="-1">Overlaid</button>
       </nav>
 
       <div id="electoral-panel" role="tabpanel" aria-labelledby="electoral-tab">
@@ -108,24 +86,6 @@
           <button type="button" class="scope-btn overlay-btn"
             data-vivienda-publica-toggle aria-pressed="false">Vivienda pública</button>
         </footer>
-      </div>
-
-      <div id="block-group-panel" class="census-panel" role="tabpanel"
-        aria-labelledby="block-group-tab" hidden>
-        <header class="map-header">
-          <h1 id="block-group-map-title">Census estimates · TIGER/Line 2024</h1>
-          <p class="label">SES category</p>
-          <div id="block-group-category-buttons" class="race-buttons"
-            role="group" aria-label="SES category"></div>
-        </header>
-        <div class="map-wrap">
-          <div id="block-group-map" class="map-canvas block-group-map" aria-label="Census estimates at TIGER/Line block-group geography"></div>
-          <aside class="legend card" aria-label="Block-group estimate legend">
-            <h2 id="block-group-legend-title">Estimate</h2>
-            <ul id="block-group-legend-list"></ul>
-            <p class="legend-note">Direct ACS block-group estimates; quantile ranges are recalculated for each vintage. Margins of error are not shown.</p>
-          </aside>
-        </div>
       </div>
 
       <div id="combined-panel" class="combined-panel" role="tabpanel"
@@ -169,6 +129,6 @@
     </section>
   </main>
   <script src="vendor/leaflet.js"></script>
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=16"></script>
 </body>
 </html>

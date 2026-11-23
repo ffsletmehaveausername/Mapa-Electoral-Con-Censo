@@ -47,10 +47,6 @@ const combined = {
   censusCatalog:null,censusCatalogYear:null,censusRequest:0,censusYear:2024,
   transparency:35,breaks:[]
 };
-const blockGroup = {
-  map:null,dataLayer:null,geometryYear:null,catalog:null,catalogKey:null,
-  request:0,statusMessage:'',year:2024,category:''
-};
 let activeTab='electoral';
 
 map.createPane('residencialesPane');
@@ -736,18 +732,6 @@ function wireControls() {
     byId('combined-transparency-value').textContent=`${combined.transparency}%`;
     if(combined.censusLayer) combined.censusLayer.setStyle(combinedCensusStyle);
   });
-  document.querySelectorAll('[data-block-group-year]').forEach(button=>{
-    button.addEventListener('click',()=>{
-      blockGroup.year=Number(button.dataset.blockGroupYear);
-      document.querySelectorAll('[data-block-group-year]').forEach(item=>{
-        const active=item===button;
-        item.classList.toggle('is-active',active);
-        item.setAttribute('aria-pressed',String(active));
-      });
-      loadBlockGroupData();
-    });
-  });
-  byId('block-group-metric').addEventListener('change',()=>loadBlockGroupData());
   document.querySelectorAll('[data-year]').forEach(button=>{
     button.addEventListener('click',()=>loadYear(Number(button.dataset.year)));
   });
@@ -812,7 +796,7 @@ function wireControls() {
       }
     });
   });
-  const tabs=['electoral','block-group','combined'];
+  const tabs=['electoral','combined'];
   for(const name of tabs) {
     byId(`${name}-tab`).addEventListener('click',()=>selectTab(name));
     byId(`${name}-tab`).addEventListener('keydown',event=>{
@@ -906,47 +890,6 @@ function updateMetricOptions(metrics,category,metricSelect) {
   return matches.find(metric=>metric.id===metricSelect.value);
 }
 
-function updateBlockGroupMetricOptions(metrics) {
-  const categoryButtons=byId('block-group-category-buttons');
-  const metricSelect=byId('block-group-metric');
-  const oldMetric=metricSelect.value;
-  const availableTopics=new Set(metrics.map(metric=>metric.topic));
-  const topics=Object.keys(CENSUS_TOPICS).filter(topic=>availableTopics.has(topic));
-  if(!topics.length) return null;
-  blockGroup.category=topics.includes(blockGroup.category)?blockGroup.category:
-    topics.includes('poverty')?'poverty':topics[0];
-  categoryButtons.replaceChildren(...topics.map(topic=>{
-    const button=document.createElement('button');
-    button.type='button';
-    button.className=`race-btn${topic===blockGroup.category?' is-active':''}`;
-    button.dataset.topic=topic;
-    button.textContent=CENSUS_TOPICS[topic];
-    button.setAttribute('aria-pressed',String(topic===blockGroup.category));
-    button.addEventListener('click',()=>{
-      if(blockGroup.category===topic) return;
-      blockGroup.category=topic;
-      categoryButtons.querySelectorAll('.race-btn').forEach(item=>{
-        const active=item===button;
-        item.classList.toggle('is-active',active);
-        item.setAttribute('aria-pressed',String(active));
-      });
-      loadBlockGroupData();
-    });
-    return button;
-  }));
-  const matches=metrics.filter(metric=>metric.topic===blockGroup.category)
-    .sort((a,b)=>a.label.localeCompare(b.label));
-  metricSelect.replaceChildren(...matches.map(metric=>{
-    const option=document.createElement('option');
-    option.value=metric.id;
-    option.textContent=metric.label;
-    return option;
-  }));
-  metricSelect.value=matches.some(metric=>metric.id===oldMetric)?oldMetric:
-    censusPreferredMetric(blockGroup.category,matches);
-  return matches.find(metric=>metric.id===metricSelect.value);
-}
-
 function combinedCensusStyle(feature) {
   const value=feature.properties.combinedCensusValue;
   const index=combined.breaks.findIndex(boundary=>value!==null&&value<=boundary);
@@ -1036,104 +979,6 @@ async function loadCombinedCensusData() {
   }
 }
 
-async function loadBlockGroupData() {
-  const request=++blockGroup.request;
-  const year=blockGroup.year;
-  const root=`data/census/acs/${year}`;
-  const catalogPath=`${root}/catalog.json`;
-  const geometryPath=`data/census/tiger_${year}_72_bg.geojson`;
-  let metricPath='';
-  byId('block-group-error').hidden=true;
-  blockGroup.statusMessage='Loading block-group estimates...';
-  byId('block-group-status').hidden=false;
-  byId('block-group-status').textContent=blockGroup.statusMessage;
-  try {
-    const [catalog,geometry]=await Promise.all([
-      blockGroup.catalogKey===year?Promise.resolve(blockGroup.catalog):fetchJSON(catalogPath),
-      fetchJSON(geometryPath)
-    ]);
-    if(request!==blockGroup.request) return;
-    if(!Array.isArray(catalog.metrics))
-      throw new Error(`Invalid block-group metric catalog: ${catalogPath}`);
-    blockGroup.catalog=catalog;
-    blockGroup.catalogKey=year;
-    const metric=updateBlockGroupMetricOptions(catalog.metrics);
-    if(!metric) throw new Error(`No block-group indicators are available for ${year}.`);
-    const field=metric.fields.direct;
-    metricPath=`${root}/${metric.table}_direct.json`;
-    const dataset=await fetchJSON(metricPath);
-    if(request!==blockGroup.request) return;
-    const values=dataset.values?.[field];
-    if(!Array.isArray(dataset.ids)||!Array.isArray(values))
-      throw new Error(`Metric field ${field} is missing from ${metricPath}.`);
-    const indexById=new Map(dataset.ids.map((id,index)=>[String(id),index]));
-    const observed=[];
-    geometry.features.forEach(feature=>{
-      const geoid=String(feature.properties.GEOID??'');
-      const index=indexById.get(geoid);
-      const value=index===undefined?null:values[index];
-      feature.properties.censusValue=numeric(value)?value:null;
-      if(numeric(value)) observed.push(value);
-    });
-    const breaks=censusBreaks(observed);
-    const dataLayer=L.geoJSON(geometry,{
-      style:feature=>{
-        const value=feature.properties.censusValue;
-        const index=breaks.findIndex(boundary=>value!==null&&value<=boundary);
-        return {
-          color:'#fff',weight:.45,
-          fillColor:value===null?'#c8c8c8':CENSUS_COLORS[index<0?CENSUS_COLORS.length-1:index],
-          fillOpacity:value===null ? .75 : .86
-        };
-      },
-      onEachFeature:(feature,layer)=>{
-        const details=document.createElement('span');
-        details.textContent=
-          `Block group ${feature.properties.GEOID} · `+
-          formatCensusValue(metric,feature.properties.censusValue);
-        layer.bindTooltip(details,{sticky:true,opacity:.96,direction:'top'});
-      }
-    });
-    if(blockGroup.dataLayer) blockGroup.map.removeLayer(blockGroup.dataLayer);
-    blockGroup.dataLayer=dataLayer.addTo(blockGroup.map);
-    if(blockGroup.geometryYear!==year) {
-      blockGroup.map.fitBounds(dataLayer.getBounds(),{padding:[14,14]});
-      blockGroup.geometryYear=year;
-    }
-    const period=`${catalog.acs_period_start}–${catalog.acs_period_end}`;
-    byId('block-group-vintage-label').textContent=`ACS ${period} · TIGER/Line ${year}`;
-    byId('block-group-map-title').textContent=`${metric.label} · TIGER/Line ${year}`;
-    byId('block-group-description').textContent=
-      `${metric.description} Universe: ${metric.universe}. `+
-      'Direct ACS estimate at block-group geography; not allocated to electoral areas.';
-    renderCensusLegend(metric,breaks,'block-group-legend-title','block-group-legend-list');
-    const missing=Math.max(0,geometry.features.length-observed.length);
-    blockGroup.statusMessage=
-      `${geometry.features.length.toLocaleString()} TIGER/Line block groups · `+
-      `${observed.length.toLocaleString()} with estimates · ${missing.toLocaleString()} without estimates`;
-    byId('block-group-status').textContent=blockGroup.statusMessage;
-  } catch(error) {
-    cache.delete(catalogPath);
-    cache.delete(geometryPath);
-    if(metricPath) cache.delete(metricPath);
-    if(request!==blockGroup.request) return;
-    byId('block-group-error').textContent=error.message;
-    byId('block-group-error').hidden=false;
-    blockGroup.statusMessage='';
-    byId('block-group-status').hidden=true;
-  }
-}
-
-async function showBlockGroupMap() {
-  if(!blockGroup.map) {
-    blockGroup.map=L.map('block-group-map',{preferCanvas:true,attributionControl:false})
-      .setView([18.2,-66.4],9);
-  }
-  blockGroup.map.invalidateSize({pan:false});
-  if(blockGroup.catalogKey!==blockGroup.year||!blockGroup.dataLayer)
-    await loadBlockGroupData();
-}
-
 async function showCombinedMap() {
   if(!state.bundle) await loadYear(state.year);
   if(!combined.map) {
@@ -1161,7 +1006,7 @@ async function showCombinedMap() {
 }
 
 function selectTab(name) {
-  const tabs=['electoral','block-group','combined'];
+  const tabs=['electoral','combined'];
   if(activeTab==='combined'&&name!=='combined'&&combined.map)
     map.setView(combined.map.getCenter(),combined.map.getZoom(),{animate:false});
   else if(name==='combined'&&activeTab!=='combined'&&combined.map)
@@ -1174,11 +1019,9 @@ function selectTab(name) {
     byId(`${tab}-panel`).hidden=!active;
   }
   byId('electoral-sidebar').hidden=name!=='electoral'&&name!=='combined';
-  byId('block-group-sidebar').hidden=name!=='block-group';
   byId('combined-controls').hidden=name!=='combined';
   activeTab=name;
   if(name==='electoral') requestAnimationFrame(()=>map.invalidateSize({pan:false}));
-  else if(name==='block-group') requestAnimationFrame(()=>showBlockGroupMap());
   else requestAnimationFrame(()=>showCombinedMap());
 }
 
