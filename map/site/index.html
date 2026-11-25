@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Puerto Rico Electoral Map</title>
   <link rel="stylesheet" href="vendor/leaflet.css">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
   <div class="bg-shape bg-shape-a" aria-hidden="true"></div>
@@ -32,6 +32,15 @@
         </div>
       </section>
       <p id="status" role="status">Cargando mapa...</p>
+      <section id="boundary-sources" class="boundary-sources" aria-label="Archivos geográficos" hidden>
+        <p id="boundary-sources-title"></p>
+        <ul>
+          <li>Municipio: <span id="boundary-municipio">municipio.geojson (origen .shp no documentado)</span></li>
+          <li>Precinto: <span id="boundary-precinto"></span></li>
+          <li>Unidad: <span id="boundary-unidad"></span></li>
+        </ul>
+        <p id="boundary-sources-note"></p>
+      </section>
       <p id="error" role="alert" hidden></p>
       </div>
       <div id="combined-controls" hidden>
@@ -129,6 +138,6 @@
     </section>
   </main>
   <script src="vendor/leaflet.js"></script>
-  <script src="app.js?v=17"></script>
+  <script src="app.js?v=18"></script>
 </body>
 </html>

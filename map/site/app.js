@@ -15,6 +15,12 @@ const RACE_NAMES = {
 };
 const RACE_ORDER = ['GOB','COM','SNA','RPA','SND','RPD','ALC','PLE','PLE-1','PLE-2'];
 const GEO_FILES = {precinto:'prekey', unidad:'unikey'};
+const BOUNDARY_PLANS = {
+  2012:{precinto:'Pre_CEE_2011.shp',unidad:'Uni_CEE_2012.shp'},
+  2016:{precinto:'Pre_CEE_2011.shp',unidad:'Uni_CEE_2016.shp'},
+  2020:{precinto:'Pre_CEE_2011.shp',unidad:'Uni_CEE_2020.shp'},
+  2024:{precinto:'Pre_CEE_2025.shp',unidad:'Uni_CEE_2025.shp'}
+};
 const CENSUS_TOPICS = {
   housing:'Housing',
   population_and_household_denominators:'Population and households',
@@ -48,6 +54,7 @@ const combined = {
   transparency:35,breaks:[]
 };
 let activeTab='electoral';
+let boundarySourcesReady=false;
 
 map.createPane('residencialesPane');
 map.getPane('residencialesPane').style.zIndex='640';
@@ -528,6 +535,19 @@ function refreshMapTitle() {
   byId('combined-map-title').textContent=`Mapa Electoral ${state.year}`;
 }
 
+function renderBoundarySources(year) {
+  const plan=BOUNDARY_PLANS[year];
+  if(!plan) throw new Error(`No hay información de geometrías para ${year}.`);
+  byId('boundary-sources-title').textContent=`Geometrías electorales · ${year}`;
+  byId('boundary-precinto').textContent=plan.precinto;
+  byId('boundary-unidad').textContent=plan.unidad;
+  byId('boundary-sources-note').textContent=year===2012
+    ?'El mapa usa GeoJSON; los archivos .shp indicados son del análisis. El origen exacto del GeoJSON de 2012 no está confirmado.'
+    :'El mapa usa versiones GeoJSON de estos archivos .shp.';
+  boundarySourcesReady=true;
+  byId('boundary-sources').hidden=activeTab!=='electoral';
+}
+
 function getRaceDataFromDirect(metrics,data) {
   return votesFromDirectData(metrics,data);
 }
@@ -640,6 +660,8 @@ async function changeGeography(scope,bounds=null,preserveView=false) {
 async function loadYear(year) {
   const request=++state.request;
   state.loading=true;
+  boundarySourcesReady=false;
+  byId('boundary-sources').hidden=true;
   document.querySelectorAll('[data-year],[data-race]').forEach(button=>button.disabled=true);
   clearError();
   byId('status').textContent=`Cargando elecciones de ${year}...`;
@@ -662,6 +684,7 @@ async function loadYear(year) {
     if(request!==state.request) return;
     drawLayer(null,true);
     byId('status').textContent=`${year} · municipio · ${state.geoData.features.length} áreas`;
+    renderBoundarySources(year);
   } catch(error) {
     if(request===state.request) showError(error.message);
   } finally {
@@ -1023,6 +1046,7 @@ function selectTab(name) {
     byId(`${tab}-panel`).hidden=!active;
   }
   byId('electoral-sidebar').hidden=name!=='electoral'&&name!=='combined';
+  byId('boundary-sources').hidden=name!=='electoral'||!boundarySourcesReady;
   byId('combined-controls').hidden=name!=='combined';
   activeTab=name;
   if(name==='electoral') requestAnimationFrame(()=>map.invalidateSize({pan:false}));

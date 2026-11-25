@@ -182,6 +182,17 @@ button {
 }
 #error, #census-error, #combined-error { color: #a32b20; }
 
+.boundary-sources {
+  margin-top: 12px;
+  color: #555;
+  font-size: .72rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.boundary-sources p { margin: 0 0 5px; }
+.boundary-sources ul { margin: 0 0 5px; padding-left: 18px; }
+#boundary-sources-title { color: var(--ink); font-weight: 700; }
+
 .map-panel {
   min-width: 0;
   padding: 12px;

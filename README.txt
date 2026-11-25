@@ -23,6 +23,13 @@ Double-click map/start_map.bat to serve the offline map at
 http://127.0.0.1:8768/. Python 3.9 or newer is required. The map and Leaflet
 assets are local; no network basemap is used.
 
+The Electoral tab lists the selected year's precinct and unit boundary
+plans below the area count. The map displays GeoJSON versions; the original
+municipio shapefile is not documented. For 2012, the listed shapefiles are
+the analysis plans, and the precise source of the map GeoJSON is unverified.
+When boundary plans change, update BOUNDARY_PLANS in map/site/app.js to
+match the corresponding prekey and unikey catalogs.
+
 The Overlaid tab layers direct ACS estimates on matching TIGER/Line
 block-group boundaries over the electoral map. The map does not display
 apportioned ACS estimates on electoral geographies; those remain in outputs/
