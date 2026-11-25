@@ -1,3 +1,4 @@
+import argparse
 import csv
 import json
 import math
@@ -28,16 +29,35 @@ def write_json(path, value):
 def numeric(value):
     if value is None or not value.strip():
         return None
-    try:
-        result = float(value)
-    except ValueError:
-        return None
+    result = float(value)
     if not math.isfinite(result) or result in MISSING_SENTINELS:
-        return None
+        raise ValueError(f"Unexpected non-finite or sentinel Census value: {value!r}")
     return result
 
 
-def export_year(year, root=ROOT):
+def export_year(year, root=ROOT, analysis_output=None):
+    if analysis_output is None:
+        pointer = root / "outputs" / "curated_latest.json"
+        with pointer.open(encoding="utf-8") as stream:
+            run = json.load(stream)["run"]
+        if not run or Path(run).name != run or run in (".", ".."):
+            raise ValueError(f"Invalid curated run name in {pointer}")
+        analysis_output = Path("outputs") / run
+    analysis_dir = root / analysis_output
+    status = (analysis_dir / "STATUS.txt").read_text(encoding="utf-8")
+    if not status.startswith("COMPLETE:"):
+        raise ValueError(f"Curated analysis is incomplete: {analysis_dir}")
+    with (root / "data" / "census_socioeconomic" / "acs" / "curated_indicators.json").open(
+        encoding="utf-8"
+    ) as stream:
+        selected = json.load(stream)
+    estimate_ids = selected["estimates"]
+    rate_ids = selected["rates"]
+    if not estimate_ids or len(estimate_ids) != len(set(estimate_ids)):
+        raise ValueError("Curated estimate IDs must be nonempty and unique")
+    if not rate_ids or len(rate_ids) != len(set(rate_ids)):
+        raise ValueError("Curated rate IDs must be nonempty and unique")
+
     geometry_path = root / "map" / "site" / "data" / "census" / f"tiger_{year}_72_bg.geojson"
     with geometry_path.open(encoding="utf-8") as stream:
         geometry = json.load(stream)
@@ -51,15 +71,22 @@ def export_year(year, root=ROOT):
         source_catalog = json.load(stream)
     source_metrics = [
         metric for metric in source_catalog["metrics"]
-        if metric.get("topic") != "election_returns"
-        and metric.get("table") != "derived_rates"
+        if metric.get("id") in estimate_ids
     ]
+    if len(source_metrics) != len(estimate_ids) or {
+        metric["id"] for metric in source_metrics
+    } != set(estimate_ids):
+        raise ValueError(f"Curated estimate metadata missing or duplicated for {year}")
     metrics_by_table = defaultdict(list)
     for metric in source_metrics:
         metrics_by_table[metric["table"]].append(metric)
-    source_fields = {metric["id"] for metric in source_metrics}
 
-    rates = read_csv(root / "outputs" / "rate_dictionary.csv")
+    rates = [
+        rate for rate in read_csv(root / "outputs" / "rate_dictionary.csv")
+        if rate["id"] in rate_ids
+    ]
+    if len(rates) != len(rate_ids) or {rate["id"] for rate in rates} != set(rate_ids):
+        raise ValueError("Curated rate metadata missing or duplicated")
     rate_fields = {
         field
         for rate in rates
@@ -68,39 +95,44 @@ def export_year(year, root=ROOT):
     rate_values = {}
     output_metrics = []
     output_dir = root / "map" / "site" / "data" / "census" / "acs" / str(year)
+    source_path = analysis_dir / str(year) / "block_groups.csv"
+    source_rows = {}
+    with source_path.open(encoding="utf-8-sig", newline="") as stream:
+        reader = csv.DictReader(stream)
+        needed = set(estimate_ids + rate_ids)
+        needed.update(f"{field}_quality" for field in estimate_ids + rate_ids)
+        needed.add("GEOID")
+        missing_fields = needed - set(reader.fieldnames or [])
+        if missing_fields:
+            raise ValueError(f"Missing curated columns in {source_path}: {sorted(missing_fields)}")
+        for row in reader:
+            geoid = row["GEOID"].strip()
+            if geoid not in geoid_set or geoid in source_rows:
+                raise ValueError(f"Unexpected or duplicate GEOID {geoid} in {source_path}")
+            source_rows[geoid] = row
+    if set(source_rows) != geoid_set:
+        raise ValueError(f"TIGER/ACS GEOID mismatch in {source_path}")
+    allowed_quality = {
+        "lower_uncertainty", "moderate_uncertainty", "high_uncertainty",
+        "unassessable", "annotated_review", "estimate_missing", "unassessable_derived",
+    }
+
+    def quality_for(field):
+        values = [source_rows[geoid][f"{field}_quality"] for geoid in geoids]
+        if any(value not in allowed_quality for value in values):
+            raise ValueError(f"Invalid source quality flag for {year} {field}")
+        return values
 
     for table, table_metrics in metrics_by_table.items():
-        table_path = (
-            root / "data" / "census_socioeconomic" / "acs" / str(year) / "tables" / f"{table}.csv"
-        )
-        with table_path.open(encoding="utf-8-sig", newline="") as stream:
-            reader = csv.DictReader(stream)
-            if "GEOID" not in (reader.fieldnames or []):
-                raise ValueError(f"Missing GEOID column in {table_path}")
-            fields = list(dict.fromkeys(metric["id"] for metric in table_metrics))
-            missing_fields = set(fields) - set(reader.fieldnames or [])
-            if missing_fields:
-                raise ValueError(
-                    f"Missing ACS fields in {table_path}: {', '.join(sorted(missing_fields))}"
-                )
-            table_rows = {}
-            for row in reader:
-                geoid = row["GEOID"].strip()
-                if geoid not in geoid_set:
-                    raise ValueError(f"Unexpected GEOID {geoid} in {table_path}")
-                if geoid in table_rows:
-                    raise ValueError(f"Duplicate GEOID {geoid} in {table_path}")
-                table_rows[geoid] = row
-        if set(table_rows) != geoid_set:
-            raise ValueError(f"TIGER/ACS GEOID mismatch in {table_path}")
-
+        fields = [metric["id"] for metric in table_metrics]
         values = {
-            field: [numeric(table_rows[geoid].get(field, "")) for geoid in geoids]
+            field: [numeric(source_rows[geoid][field]) for geoid in geoids]
             for field in fields
         }
         write_json(output_dir / f"{table}_direct.json", {
             "ids": geoids,
             "values": values,
+            "quality": {field: quality_for(field) for field in fields},
         })
         for field in rate_fields.intersection(values):
             rate_values[field] = values[field]
@@ -111,15 +143,17 @@ def export_year(year, root=ROOT):
                 mode="direct",
                 description=f"{metric['description']} Direct ACS estimate at block-group geography.",
                 coverage={"direct": sum(value is not None for value in values[metric["id"]])},
+                unit="currency" if metric["id"] in selected["currency"] else "number",
             )
             output_metrics.append(copied)
 
     derived_values = {}
+    derived_quality = {}
     derived_metrics = []
     for rate in rates:
         numerator_fields = rate["numerator"].split(";")
         if not set(numerator_fields + [rate["denominator"]]).issubset(rate_values):
-            continue
+            raise ValueError(f"Missing curated rate components for {rate['id']} in {year}")
         field = f"{rate['id']}_source"
         values = []
         for index in range(len(geoids)):
@@ -129,7 +163,14 @@ def export_year(year, root=ROOT):
                 values.append(None)
             else:
                 values.append(100 * sum(numerator) / denominator)
+        for geoid, value in zip(geoids, values):
+            recorded = numeric(source_rows[geoid][rate["id"]])
+            if (value is None) != (recorded is None) or (
+                value is not None and not math.isclose(value, recorded, rel_tol=1e-12, abs_tol=1e-12)
+            ):
+                raise ValueError(f"Curated rate mismatch for {year} {geoid} {rate['id']}")
         derived_values[field] = values
+        derived_quality[field] = quality_for(rate["id"])
         derived_metrics.append({
             "id": f"{rate['id']}_ratio",
             "label": f"{rate['label']} / source count ratio",
@@ -146,6 +187,7 @@ def export_year(year, root=ROOT):
         write_json(output_dir / "derived_rates_direct.json", {
             "ids": geoids,
             "values": derived_values,
+            "quality": derived_quality,
         })
     output_metrics.extend(derived_metrics)
 
@@ -164,8 +206,11 @@ def export_year(year, root=ROOT):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Export the curated ACS block-group map.")
+    parser.add_argument("--analysis-output", help="Completed curated areal output directory")
+    args = parser.parse_args()
     for year in YEARS:
-        catalog = export_year(year)
+        catalog = export_year(year, analysis_output=args.analysis_output)
         print(
             f"PASS {year}: {len(catalog['metrics'])} indicators; "
             f"{catalog['polygons']} TIGER/Line block groups."

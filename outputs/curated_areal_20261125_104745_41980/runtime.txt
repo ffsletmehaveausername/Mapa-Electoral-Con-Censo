@@ -1,0 +1,7 @@
+areal commit: 07bda84887d9f2272babe91c2ccc1e438f27f162
+areal version: 0.1.8.9000
+R version: 4.5.2
+          GEOS           GDAL         proj.4 GDAL_with_GEOS     USE_PROJ_H
+      "3.14.1"       "3.12.1"        "9.7.1"         "true"         "true"
+          PROJ
+       "9.7.1"

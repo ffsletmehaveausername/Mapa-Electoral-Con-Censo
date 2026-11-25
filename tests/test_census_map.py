@@ -1,5 +1,7 @@
+import csv
 import importlib.util
 import json
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -46,20 +48,41 @@ class DirectCensusMapExportTests(unittest.TestCase):
                     "description": "Male population",
                     "universe": "Total population",
                 },
+                {
+                    "id": "B01003_003E",
+                    "label": "Not selected",
+                    "topic": "population_and_household_denominators",
+                    "kind": "count",
+                    "table": "B01003",
+                    "description": "Not selected",
+                    "universe": "Total population",
+                },
             ]}), encoding="utf-8")
 
-            table_path = (
-                root / "data" / "census_socioeconomic" / "acs" / "2012" / "tables" / "B01003.csv"
+            acs_path = root / "data" / "census_socioeconomic" / "acs"
+            source_path = root / "outputs" / "curated_test" / "2012" / "block_groups.csv"
+            source_path.parent.mkdir(parents=True)
+            (root / "outputs" / "curated_test" / "STATUS.txt").write_text(
+                "COMPLETE: test output", encoding="utf-8"
             )
-            table_path.parent.mkdir(parents=True)
-            table_path.write_text(
-                "GEOID,B01003_001E,B01003_002E\n"
-                "001000000001,10,4\n"
-                "001000000002,0,5\n",
+            (root / "outputs" / "curated_latest.json").write_text(
+                json.dumps({"run": "curated_test"}), encoding="utf-8"
+            )
+            acs_path.mkdir(parents=True)
+            (acs_path / "curated_indicators.json").write_text(json.dumps({
+                "estimates": ["B01003_001E", "B01003_002E"],
+                "rates": ["male_share"],
+                "currency": [],
+            }), encoding="utf-8")
+            source_path.write_text(
+                "GEOID,B01003_001E,B01003_001E_quality,B01003_002E,B01003_002E_quality,"
+                "male_share,male_share_quality\n"
+                "001000000001,10,lower_uncertainty,4,high_uncertainty,40,unassessable_derived\n"
+                "001000000002,0,unassessable,5,moderate_uncertainty,,unassessable_derived\n",
                 encoding="utf-8",
             )
             rate_path = root / "outputs" / "rate_dictionary.csv"
-            rate_path.parent.mkdir(parents=True)
+            rate_path.parent.mkdir(parents=True, exist_ok=True)
             rate_path.write_text(
                 "id,label,topic,universe,numerator,denominator\n"
                 "male_share,Male population,Population,Total population,B01003_002E,B01003_001E\n",
@@ -78,12 +101,55 @@ class DirectCensusMapExportTests(unittest.TestCase):
         self.assertEqual(exported_catalog["geography"], "block_group")
         self.assertEqual(direct["ids"], ["001000000001", "001000000002"])
         self.assertEqual(direct["values"]["B01003_002E"], [4.0, 5.0])
+        self.assertEqual(direct["quality"]["B01003_002E"],
+                         ["high_uncertainty", "moderate_uncertainty"])
         self.assertEqual(derived["values"]["male_share_source"], [40.0, None])
+        self.assertEqual(derived["quality"]["male_share_source"],
+                         ["unassessable_derived", "unassessable_derived"])
+        self.assertNotIn("B01003_003E", [metric["id"] for metric in exported_catalog["metrics"]])
         self.assertEqual(
             next(metric for metric in exported_catalog["metrics"]
                  if metric["id"] == "male_share_ratio")["fields"]["direct"],
             "male_share_source",
         )
+
+    def test_published_map_matches_the_current_curated_analysis(self):
+        spec = json.loads(
+            (ROOT / "data" / "census_socioeconomic" / "acs" / "curated_indicators.json")
+            .read_text(encoding="utf-8")
+        )
+        run = json.loads((ROOT / "outputs" / "curated_latest.json").read_text(
+            encoding="utf-8"
+        ))["run"]
+        expected = set(spec["estimates"]) | {f"{rate}_ratio" for rate in spec["rates"]}
+        for year in BUILDER.YEARS:
+            with (ROOT / "outputs" / run / str(year) / "block_groups.csv").open(
+                encoding="utf-8-sig", newline=""
+            ) as stream:
+                source = {row["GEOID"]: row for row in csv.DictReader(stream)}
+            directory = ROOT / "map" / "site" / "data" / "census" / "acs" / str(year)
+            catalog = json.loads((directory / "catalog.json").read_text(encoding="utf-8"))
+            self.assertEqual({metric["id"] for metric in catalog["metrics"]}, expected)
+            for metric in catalog["metrics"]:
+                payload = json.loads((directory / f"{metric['table']}_direct.json").read_text(
+                    encoding="utf-8"
+                ))
+                field = metric["fields"]["direct"]
+                source_field = field.removesuffix("_source")
+                self.assertEqual(set(payload["ids"]), set(source))
+                self.assertEqual(len(payload["ids"]), len(payload["values"][field]))
+                self.assertEqual(len(payload["ids"]), len(payload["quality"][field]))
+                for geoid, value, flag in zip(
+                    payload["ids"], payload["values"][field], payload["quality"][field]
+                ):
+                    row = source[geoid]
+                    expected_value = BUILDER.numeric(row[source_field])
+                    self.assertTrue(
+                        value is None and expected_value is None
+                        or value is not None and expected_value is not None
+                        and math.isclose(value, expected_value, rel_tol=1e-12, abs_tol=1e-12)
+                    )
+                    self.assertEqual(flag, row[f"{source_field}_quality"])
 
 
 if __name__ == "__main__":

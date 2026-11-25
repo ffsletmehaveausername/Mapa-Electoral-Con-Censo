@@ -1,0 +1,33 @@
+{
+  "estimates": [
+    "B01003_001E",
+    "B01002_001E",
+    "B15003_001E",
+    "B15003_022E",
+    "B15003_023E",
+    "B15003_024E",
+    "B15003_025E",
+    "B19013_001E",
+    "B19057_001E",
+    "B19057_002E",
+    "B22010_001E",
+    "B22010_002E",
+    "C17002_001E",
+    "C17002_002E",
+    "C17002_003E",
+    "B25002_001E",
+    "B25002_003E",
+    "B25003_001E",
+    "B25003_002E"
+  ],
+  "intensive": ["B01002_001E", "B19013_001E"],
+  "rates": [
+    "owner_occupied_pct",
+    "vacant_housing_pct",
+    "below_poverty_pct",
+    "bachelors_or_higher_pct",
+    "public_assistance_pct",
+    "snap_pct"
+  ],
+  "currency": ["B19013_001E"]
+}

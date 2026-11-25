@@ -34,7 +34,7 @@ const CENSUS_DEFAULT_METRICS = {
   housing:'owner_occupied_pct_ratio',
   population_and_household_denominators:'B01003_001E',
   education:'bachelors_or_higher_pct_ratio',
-  income_and_earnings_related:'income_100k_plus_pct_ratio',
+  income_and_earnings_related:'B19013_001E',
   poverty:'below_poverty_pct_ratio',
   government_aid_and_retirement:'snap_pct_ratio'
 };
@@ -839,7 +839,7 @@ function formatCensusValue(metric,value) {
   if(!numeric(value)) return 'No estimate';
   if(metric.kind.endsWith('percentage')||metric.id.includes('_pct'))
     return `${value.toLocaleString(undefined,{maximumFractionDigits:1})}%`;
-  if(/income|earnings/i.test(metric.label))
+  if(metric.unit==='currency')
     return `$${Math.round(value).toLocaleString()}`;
   return value.toLocaleString(undefined,{
     maximumFractionDigits:metric.kind==='intensive'?1:0
@@ -959,14 +959,25 @@ async function loadCombinedCensusData() {
     const dataset=await fetchJSON(metricPath);
     if(request!==combined.censusRequest) return;
     const values=dataset.values?.[field];
-    if(!Array.isArray(dataset.ids)||!Array.isArray(values))
-      throw new Error(`Metric field ${field} is missing from ${metricPath}.`);
+    const quality=dataset.quality?.[field];
+    if(!Array.isArray(dataset.ids)||!Array.isArray(values)||!Array.isArray(quality)||
+       values.length!==dataset.ids.length||quality.length!==dataset.ids.length)
+      throw new Error(`Metric field or quality flags for ${field} are invalid in ${metricPath}.`);
     const indexById=new Map(dataset.ids.map((id,index)=>[String(id),index]));
+    if(indexById.size!==dataset.ids.length||indexById.size!==geometry.features.length)
+      throw new Error(`Block-group IDs are duplicated or incomplete in ${metricPath}.`);
+    const qualityFlags=new Set(['lower_uncertainty','moderate_uncertainty','high_uncertainty',
+      'unassessable','annotated_review','estimate_missing','unassessable_derived']);
     const observed=[];
+    const qualityCounts={};
     geometry.features.forEach(feature=>{
       feature.properties=feature.properties||{};
       const index=indexById.get(String(feature.properties.GEOID??''));
       const value=index===undefined?null:values[index];
+      if(index===undefined) throw new Error(`Block group is missing from ${metricPath}.`);
+      const flag=quality[index];
+      if(!qualityFlags.has(flag)) throw new Error(`Invalid quality flag in ${metricPath}.`);
+      qualityCounts[flag]=(qualityCounts[flag]||0)+1;
       feature.properties.combinedCensusValue=numeric(value)?value:null;
       if(numeric(value)) observed.push(value);
     });
@@ -981,8 +992,14 @@ async function loadCombinedCensusData() {
     const period=`${catalog.acs_period_start}–${catalog.acs_period_end}`;
     byId('combined-census-title').textContent=`${censusMetricLabel(metric)} · TIGER/Line ${year}`;
     byId('combined-census-period').textContent=`ACS ${period}`;
+    const qualityNote=metric.kind==='derived_percentage'
+      ?'Uncertainty for these derived percentages has not been assessed.'
+      :`Source quality: ${qualityCounts.high_uncertainty||0} high uncertainty; `+
+       `${(qualityCounts.unassessable||0)+(qualityCounts.annotated_review||0)+
+         (qualityCounts.estimate_missing||0)} missing, annotated or not assessable.`;
     byId('combined-census-description').textContent=
-      `${metric.description} Universe: ${metric.universe}. Direct block-group estimate.`;
+      `${metric.description} Universe: ${metric.universe}. Direct block-group estimate. `+
+      `${qualityNote} Individual source flags are in the analysis dataset.`;
     renderCensusLegend(
       metric,combined.breaks,'combined-census-title','combined-census-legend'
     );

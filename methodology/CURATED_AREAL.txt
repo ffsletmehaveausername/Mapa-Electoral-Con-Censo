@@ -1,0 +1,110 @@
+CURATED FOUR-YEAR ACS AND AREAL OUTPUTS
+=======================================
+
+This is the primary four-year analysis. Run from the project root:
+
+  & '.\.runtime\R\bin\Rscript.exe' scripts\build.R
+  & '.\.runtime\R\bin\Rscript.exe' scripts\validate.R
+
+Every run creates a new outputs/curated_areal_TIMESTAMP_PID folder. Existing
+analysis runs and legacy outputs are retained. The build updates the map's
+direct block-group payloads and outputs/curated_latest.json after successful
+export. STATUS.txt says INCOMPLETE until the calculations finish. The run
+depends on the four compact data/census_socioeconomic/acs/curated/census_YEAR.csv
+source snapshots, source dictionary, election-key snapshots, pinned areal
+source and compatible local R library. These snapshots retain the selected
+values and MOEs from the broader census data test files.
+
+WHAT IS INCLUDED
+----------------
+Each YEAR/block_groups.csv contains selected original ACS estimates, their
+margins of error (MOEs), source annotations where available, and quality
+flags. It covers population, median age, education, income, poverty, public
+assistance, SNAP, housing vacancy and home ownership. Six percentages are
+derived from the relevant count estimates. Original source CSVs remain intact.
+source_dictionary.csv records the year-specific descriptions and labels.
+Shared codes were chosen after reviewing these labels and available universe
+descriptions, but the project's 2016 metadata lacks universe descriptions;
+the same codes and similar labels alone do not prove complete comparability.
+
+ACS periods are five-year estimates ending in each year. Adjacent periods
+overlap, and block-group boundaries change. Income is in each survey period's
+own inflation-adjusted dollars; do not compare dollar amounts directly without
+adjusting to a common price year. 2012 does not have separate annotation
+columns in these source files, so the absence of an annotation in that year
+does not establish that the estimate was unannotated.
+
+SOURCE QUALITY FLAGS
+--------------------
+For a positive estimate with an available, unannotated 90% MOE, CV is
+MOE / (1.645 * estimate). The heuristic flags are lower_uncertainty for
+CV < 0.15, moderate_uncertainty for 0.15 <= CV < 0.30, and high_uncertainty
+for CV >= 0.30. These are screening thresholds, not guarantees of accuracy.
+Missing values are estimate_missing. Estimates with special annotations are
+annotated_review. A zero estimate or an unavailable MOE is unassessable.
+All estimates are retained, including high-uncertainty ones. Derived
+percentages are marked unassessable_derived because no valid derived MOE has
+been calculated; inspect their component estimates and MOEs separately.
+
+PREKEY AND UNIKEY RESULTS
+-------------------------
+YEAR/prekey/ is precinct geography; YEAR/unikey/ is voting-unit geography.
+The exact native results are sum.csv, total.csv and intensive.csv. The
+corresponding RDS files retain R's precise missing-value representation.
+Each row covers a target with a polygon. Join to election data within the
+same year using TARGET_ID (or PREKEY and UNIKEY), not by matching row order.
+The target_key_audit.csv also lists election keys without polygons from the
+existing election-output snapshot. They are not represented in target
+estimate CSVs and cannot receive a geographic estimate without a valid
+polygon. Many may be non-geographic voting units; their status needs review.
+
+The matching *_positive_area.csv files apply one explicit adjustment:
+intersections that only touch at a line or point are removed before using the
+same native areal functions. In unusual geometries this avoids blanks caused
+by zero-area contacts; this adjustment is not byte-for-byte upstream code
+behavior. border_correction_checks.csv measures the effect. Do not treat
+either version as a substitute for missing Census observations.
+
+SUM distributes each block group's complete count among its covered targets.
+TOTAL allocates only its geometrically covered fraction. Neither is always
+correct: see coverage.csv, with source and overlapping areas. These are
+polygon areas, including water where present; they are not direct estimates
+of where residents live. A block group with no positive overlap is not
+allocated by either method. Neither choice fixes missing electoral polygons.
+population_coverage_summary.csv compares source population with SUM and
+TOTAL results and reports groups with little or no covered area.
+Ratios in the SUM and TOTAL files are recomputed from allocated counts, not
+the result of interpolating the original source percentages.
+
+INTENSIVE interpolates area-weighted source medians. These are not true
+medians of people or households in the destination and are especially
+sensitive to missing source medians. Missing data can propagate to a target
+even when the missing source is an uninhabited area. No target-level MOEs
+or reliability classifications are estimated. target_source_quality.csv
+instead counts quality flags of positively overlapping source block groups;
+it is a diagnostic of inputs, not a statistical uncertainty measure for the
+target or its derived percentages.
+
+INTERMEDIATES AND LIMITATIONS
+-----------------------------
+source_geometry.rds and each target_geometry.rds contain projected geometries;
+intersection.rds contains native areal intersections and weights.rds contains
+the three native weight tables, indexed by source GEOID and TARGET_ID.
+These allow checks and reproducibility without reconstructing the overlay.
+The 2012 voting-unit source contains two invalid shapes. R's st_make_valid
+repairs them before interpolation, and the run stops if repair changes their
+area by more than 1e-8 relative; geometry_repair_audit.csv records the areas.
+The 2024 project boundaries are named 2025; whether they match election-day
+boundaries remains unverified. Areal assumes uniform distribution within each
+source polygon and cannot repair these boundary issues or missing values.
+
+direct_areal_checks.csv compares one real population or income field for
+each year, geography and weighting mode against the pinned package's direct
+aw_interpolate call. The other fields use the same native package steps and
+overlay; they have not each been independently compared to aw_interpolate.
+The installed functions are checked against the pinned source. A Git checkout
+must be clean at the recorded commit; exported copies without nested Git
+metadata are checked against canonical source hashes in SOURCE_HASHES.csv.
+scripts/validate.R independently recalculates the stored native weights and
+every selected target estimate and ratio.
+See tests/test_curated_areal.R for synthetic missing-contact and quality tests.

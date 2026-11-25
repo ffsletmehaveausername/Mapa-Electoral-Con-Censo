@@ -1,5 +1,6 @@
 /.runtime/
 /archive/
+/Census API Key.txt
 **/__pycache__/
 *.py[cod]
 .Rhistory

@@ -1,5 +1,14 @@
 AREAL PREKEY UNIKEY: METHOD AND LIMITATIONS
 =========================================
+PRIMARY WORKFLOW
+----------------
+The current four-year curated build uses native R areal for 2012, 2016,
+2020 and 2024. See methodology/CURATED_AREAL.txt for the source quality
+flags, exact and positive-area results, validation and important limitations.
+The map displays curated direct block-group ACS values, not apportioned
+electoral estimates. The sections below document the older broad outputs and
+their background; do not mistake those outputs for the primary curated run.
+
 AUTHORITATIVE METHOD SOURCE
 ---------------------------
 The upstream chris-prener/areal repository is the authority for areal
@@ -78,7 +87,12 @@ for analysis; there are no colegio polygons or colegio-level SES allocations.
 ar_validate checks sf objects, shared planar CRS, required variables, and
 target/source column conflicts. The build additionally checks unique keys,
 valid/nonempty positive-area geometries, matching GEOIDs, target overlap,
-and election matches. Zero-area boundary contacts are not allocation links.
+and election matches. The older build removes zero-area boundary contacts;
+the upstream implementation does not explicitly filter them. With missing
+values this can change results, so the older build is not guaranteed to match
+aw_interpolate exactly in that edge case. The separate curated four-year
+analysis keeps both behaviors and reports their differences; see
+methodology/CURATED_AREAL.txt.
 
 3. AREAL REPOSITORY WORKFLOW
 For 2016-2024, compute aw_intersect once and reuse that original

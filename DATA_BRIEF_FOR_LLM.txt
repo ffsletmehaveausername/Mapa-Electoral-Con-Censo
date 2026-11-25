@@ -1,0 +1,396 @@
+PUERTO RICO ELECTORAL AND CENSUS PROJECT: DATA BRIEF FOR AN LLM
+================================================================
+Snapshot prepared: 2026-11-19
+
+UPDATE 2026-11-25: The primary analysis is the four-year curated native R
+areal workflow. outputs\curated_latest.json identifies its completed run;
+the older wide datasets and their Python 2012 backfill are retained as
+legacy. The Overlaid map now displays the same 25 curated direct block-group
+indicators for each year, not apportioned values. See README.txt and
+methodology\CURATED_AREAL.txt for the current build, quality flags and
+limitations. Remaining counts and descriptions below are historical unless
+independently checked against the current files.
+
+PURPOSE AND HOW TO USE THIS BRIEF
+---------------------------------
+This project combines Puerto Rico election returns with American Community
+Survey (ACS) socioeconomic estimates and electoral geography. It includes
+analysis-ready precinct and voting-unit datasets, source data, geographic
+boundaries, an offline interactive map, methods, scripts, and tests.
+
+Use this document to orient a new assistant, not as a substitute for checking
+the actual files. Paths below are relative to the project root. This is a
+snapshot: files, methods, and pending work can change. Counts are based on
+the files present when the brief was prepared. Inspection covered project
+documentation, file inventories, electoral dictionary and workbook structure,
+CSV schemas/counts, selected code, catalogs, and validation reports; it was
+not an independent audit of every value or of historical source accuracy.
+
+Most important: do not confuse (1) observed election returns, (2) direct
+ACS estimates at block-group level, and (3) ACS estimates spatially
+apportioned to electoral areas. They are distinct products.
+
+QUICK PROJECT MAP
+-----------------
+README.txt                            Entry point, build/test guidance.
+pending issues.txt                    Proposed academic-robustness work;
+                                      not a record of completed fixes.
+project.json                          2016-2024 R build configuration,
+                                      boundary assignments, CRS and areal pin.
+data\electoral\source\                Original election data and dictionary.
+data\electoral\normalized\            Precinct/unit election inputs, 2016-2024.
+data\census_socioeconomic\acs\        ACS tables, raw inputs and metadata.
+data\geodata\                         Electoral, TIGER and housing geography.
+outputs\                              Combined and method-specific datasets.
+map\                                  Offline web map and local map payloads.
+methodology\                          Method explanation and pinned areal source.
+scripts\                              Data builds, map export, validation.
+tests\                                Focused Python and R tests.
+archive\                              Previous map and generated cache; not
+                                      the primary current application.
+.runtime\                             Local R runtime/library, not necessarily
+                                      available in a shared copy.
+
+ELECTORAL DATA: SOURCES, YEARS AND GRANULARITY
+----------------------------------------------
+Source directory:
+  data\electoral\source\Electionspuertorico.com\
+
+The original election-data dictionary is:
+  data\electoral\source\Electionspuertorico.com\OriginalDataDictionary.xlsx
+It has sheets for 2012, 2016, 2020 and 2024, in Spanish. It is the
+starting point for the original field meanings. A description sometimes
+appears only on the first row of a group of related fields; subsequent
+blank descriptions should be read in that context. Check the actual CSV or
+workbook headers as well: naming/order is not perfectly consistent between
+the dictionary, source files, and normalized data.
+
+2012: Precintos.xls and Unidades.xls. The analysis backfill reads both
+sheets of Unidades.xls: general election/status consultation and a separate
+referendum sheet. Precinct analysis returns are aggregated from unit rows,
+not read from Precintos.xls by this builder. There is no 2012 file in
+data\electoral\normalized; the workbook is the analysis input.
+
+2016: Precintos.xls and Unidades.xls, plus normalized precinct and unit CSVs.
+The dictionary describes the general election but does not establish a
+2016 plebiscite dataset in these analysis inputs.
+
+2020 and 2024: each has colegio-level estatal.csv, legislativa.csv,
+municipal.csv and plebiscito.csv. In this snapshot the row counts are:
+
+                  estatal   legislativa   municipal   plebiscito
+       2020         6,437        6,327       6,327         6,327
+       2024         7,845        7,845       7,845         7,845
+
+2024 also has 2024_plebiscito_por_colegio_oficial.csv, 7,845 rows. It
+adds details such as ballot totals and over/undervotes for the same keys;
+join it to the relevant returns, never append it as additional returns.
+Original colegio records are retained, but there are no colegio polygons or
+colegio-level ACS allocations in this project. Different 2020 file row
+counts mean coverage must be checked when joining ballot files; do not
+assume every file contains the same keys.
+
+Normalized files:
+  data\electoral\normalized\precincts_{2016,2020,2024}.csv
+  data\electoral\normalized\units_{2016,2020,2024}.csv
+They contain aggregated election inputs for the corresponding level, with
+field prefixes such as GENERAL__, ESTATAL__, LEGISLATIVA__, MUNICIPAL__,
+and PLEBISCITO__. They are not a replacement for the source dictionary or
+the original colegio records. The R build consumes these snapshots; the
+inspected build does not itself construct them from original source files.
+The 2020/2024 normalized files include per-source SOURCE_ROWS fields but
+not the original text STATUS fields. INSCRITOS appears for multiple ballot
+sources: do not sum repeated registration fields across ballots as if
+they were independent people.
+
+KEYS AND JOIN RULES
+-------------------
+PREKEY = electoral precinct (precinto). UNIKEY = voting unit (unidad)
+within a precinct. COLKEY = colegio within a unit where present.
+
+  Precinct:   election year + PREKEY
+  Unit:       election year + PREKEY + UNIKEY
+  Colegio:    election year + PREKEY + UNIKEY + COLKEY
+  Census BG:  ACS/TIGER vintage + 12-digit GEOID
+
+Never join on UNIKEY or COLKEY alone. Numeric-looking identifiers may have
+leading zeros: normalize carefully. Analysis PREKEY is three digits, e.g.
+001; unit TARGET_ID is PREKEY plus a hyphen and the unpadded unit number,
+e.g. 001-1. Source CSVs may write PREKEY as 1 instead of 001. Include year
+in cross-year joins; matching codes do not prove stable boundaries.
+
+Election and polygon keys are outer-joined in analysis outputs. A unit can
+have returns but no geographic polygon, or a polygon but no return. Missing
+geometry is not automatically a lost election record. In particular,
+2012 has 314 unit return pairs using UNIKEY 77-80 without retained unit
+polygons. They remain in analysis output, with missing spatial SES.
+
+ELECTORAL FIELD DECODING AND CAUTIONS
+--------------------------------------
+Common race prefixes:
+  GOB   Governor                      COM   Resident commissioner
+  RPD   District representative       SND   District senator
+  RPA   At-large representative       SNA   At-large senator
+  ALC   Mayor                         PLE   Plebiscite, where present
+
+EST, LEG and MUN indicate state, legislative and municipal ballot fields;
+INT and MIX denote straight-ticket and mixed ballot votes. INSCRITOS is
+registered electors; VOTARON is voters according to the list where present.
+Suffixes include party/candidate codes and ballot categories such as OTR
+(other), BLN (blank), NUL (null), MVT (mal votado), NVT (no votado),
+CND (candidatura), and TOT (total). Consult the specific year's dictionary
+and raw header rather than treating all these as interchangeable measures.
+Numbered fields such as SND_PNP_1 and SND_PNP_2 represent distinct
+candidate slots, not separate parties; do not blindly sum candidates,
+ballots, and voters as if they were the same unit of measurement.
+Party/candidate availability, independent candidates, election rules and
+field definitions vary by year. The 2016 normalized independent governor
+fields use GOB_IND_CIDRE and GOB_IND_LUGARO rather than the original
+GOB_IND_1 and GOB_IND_2 labels.
+
+2012 status consultation fields in the general sheet use CON_1_* and
+CON_2_*; the analysis output also contains PLE_1_* and PLE_2_* aliases of
+these fields. These are duplicates, not additional votes. The separately
+prefixed REFERENDUM__LEGISLATURA_* and REFERENDUM__FIANZA_* fields are
+different referendum questions. 2020 plebiscite source options are
+PLE_SI and PLE_NO; 2024 options are PLE_SLA, PLE_EST and PLE_IND.
+Do not treat these as identical questions or compare their vote shares
+without accounting for ballot wording, options, denominator and context.
+
+The 2024 dictionary mentions presidential ballot fields, but the inspected
+2024 source folder contains only the four ballot CSVs listed above and the
+supplemental plebiscite CSV; no presidential CSV or presidential fields
+were found in the normalized unit file. A dictionary entry alone is not
+evidence that corresponding observations are present.
+
+ANALYSIS OUTPUTS AND DATA DICTIONARIES
+---------------------------------------
+The older broad joined products are:
+  outputs\YEAR\prekey\full_dataset.csv
+  outputs\YEAR\unikey\full_dataset.csv
+for YEAR = 2012, 2016, 2020, 2024. They are very wide CSVs containing
+identifiers, geometry/coverage flags, election values, and multiple
+ACS-derived estimators. In this snapshot they contain:
+
+ Year   Level      Rows  Polygons  Election rows  No polygon  No election
+ 2012   precinct    110       110            110           0            0
+ 2012   unit      1,848     1,534          1,847         314            1
+ 2016   precinct    110       110            110           0            0
+ 2016   unit      1,852     1,500          1,852         352            0
+ 2020   precinct    110       110            110           0            0
+ 2020   unit      1,854     1,363          1,854         491            0
+ 2024   precinct    114       114            114           0            0
+ 2024   unit      2,092     1,291          2,092         801            0
+
+The unit row counts include the union of polygon and election keys.
+See outputs\dataset_catalog.csv for the machine-readable inventory.
+These counts do not measure the share of votes excluded from spatial
+analysis; that needs to be calculated for the particular race.
+
+Key metadata fields include TARGET_ID, PREKEY, UNIKEY where applicable,
+municipio, has_polygon, has_election, geometry_status, election_year,
+acs_period_start/end, boundary_plan, target_area_m2,
+source_overlap_fraction and has_positive_overlap. source_overlap_fraction
+is geographic overlap coverage, not variable-specific valid-data coverage.
+source_coverage.csv instead describes covered area for each source BG.
+
+Each year/level folder contains:
+  counts_sum.csv and counts_total.csv
+  amounts_sum.csv and amounts_total.csv
+  intensive_estimates.csv
+  ratios_from_counts_sum.csv and ratios_from_counts_total.csv
+  source_coverage.csv
+  full_dataset.csv
+The full file distinguishes methods with suffixes such as
+B01003_001E_sum, B01003_001E_total, below_poverty_pct_intensive, and
+below_poverty_pct_from_counts_sum/total. The narrower method-specific files
+have their own headers; inspect them rather than assuming identical names.
+
+  outputs\source_dictionary.csv: all four years' usable ACS estimate
+    fields, labels, table descriptions, topic, universe where supplied,
+    classification and guidance. In the snapshot: 8,474 field/year rows.
+  outputs\2012\source_dictionary.csv: 2012-specific metadata.
+  outputs\2012\omitted_variables.csv: 155 fields unavailable in the 2012
+    Summary File relative to the requested catalog.
+  outputs\rate_dictionary.csv: 15 defined ratios, component variables,
+    universes and distinction between intensive and count-ratio estimates.
+  data\census_socioeconomic\acs\apportionment_catalog.csv: catalog used by
+    the 2016-2024 R build, not the combined four-year output dictionary.
+
+The rate dictionary covers owner occupancy, vacancy, households earning
+$100K+, below-poverty population, six education measures (age 25+), Social
+Security, SSI, public assistance, assistance or food stamps, and SNAP.
+For example, B01003_001E is total population and B19013_001E is median
+household income; verify labels and universes in the relevant year before
+analysis. The letter E denotes an estimate. A category labeled with a
+percentage band may itself be a count of households/people in that band.
+
+ACS DATA: WHAT IS AND IS NOT HERE
+---------------------------------
+ACS data are five-year period estimates, not single-day measurements:
+  election/output 2012: ACS 2008-2012; 2016: ACS 2012-2016;
+  2020: ACS 2016-2020; 2024: ACS 2020-2024.
+Adjacent periods overlap; labels and universes may change, and dollar
+values are vintage-specific, not automatically inflation-adjusted.
+
+data\census_socioeconomic\acs\YEAR\tables\ holds cleaned table CSVs;
+YEAR\raw\ holds source downloads. The 2012 source uses sequence-based ACS
+Summary Files; later years have raw table files and cleaned tables. Local
+usable source-field counts in outputs\source_dictionary.csv:
+
+  Year  Tables  Estimate fields  Counts  Amounts  Intensive
+  2012     189            1,877   1,750       76         51
+  2016     201            2,032   1,905       76         51
+  2020     211            2,161   2,028       74         59
+  2024     252            2,404   2,237       74         93
+
+Topics represented are population/households, education, income/earnings,
+poverty, housing, and government aid/retirement. This is the usable
+collection in this project, not every ACS table or all possible subjects.
+The availability inventory says examples absent from local raw and cleaned
+collections include race, migration, commuting, veteran status, language,
+employment, disability, insurance, and internet tables. This is a
+time-stamped inventory, not proof that Census never published those topics
+or that all potential geographies were checked. See:
+  data\census_socioeconomic\AVAILABILITY.txt
+Some detailed inventories mentioned there live outside this project in an
+older session directory and may not travel with a copy of the folder.
+
+There is no 2008 ACS five-year block-group product or 2008 analysis output
+here. The inventory describes incomplete 2008 municipio coverage in
+one-/three-year products. Do not invent 2008 comparable block-group SES.
+The project does not claim apportioned target-level margins of error.
+Source MOEs/annotations are retained in source data where available, but
+only estimates are interpolated. No urban/rural housing values are
+provided in the selected ACS-only collection.
+
+GEOGRAPHY AND APPORTIONMENT
+---------------------------
+Source polygons: matching TIGER/Line Puerto Rico block groups in
+data\geodata\tiger_block_groups\tl_YEAR_72_bg\, linked to ACS by GEOID.
+Target polygons: CEE electoral boundary shapefiles under
+data\geodata\precinct_boundaries\ and data\geodata\unit_boundaries\.
+Other layers include data\geodata\vivienda_publica.geojson and local
+municipio and 2009 residenciales layers under map\site\data\.
+
+Assignment used by the project:
+  2012: 2011 precinct boundaries; Uni_CEE_2012 units.
+  2016: 2011 precinct boundaries; Uni_CEE_2016 units.
+  2020: 2011 precinct boundaries; Uni_CEE_2020 units.
+  2024: Pre_CEE_2025 precincts; Uni_CEE_2025 units.
+These are configured/modeling assignments, not proof that the boundaries
+were legally in force on election day. project.json lists only 2016-2024:
+2012 is separately specified in scripts\build_curated_areal.R. Areas use projected
+EPSG:32161; map geometry is exported for web display.
+
+Election results are copied/joined by electoral key; votes are NOT
+apportioned. ACS block-group estimates are allocated using area overlap,
+assuming uniform distribution within each source polygon. The authority
+for the interpolation mechanics is the vendored areal R package pinned
+at commit 07bda84887d9f2272babe91c2ccc1e438f27f162:
+  methodology\areal\source\
+  methodology\areal\UPSTREAM.txt
+  methodology\METHODOLOGY.txt
+The primary build calls the pinned R package for all four years. The older
+2012 output uses a separate Python implementation of the same formulas.
+
+Let Aij be the positive intersection area of BG i and target j, Ai the
+whole BG area, and Ci the sum of its intersections with supplied targets.
+  TOTAL extensive weight = Aij/Ai: leaves uncovered source area unallocated.
+  SUM extensive weight   = Aij/Ci: distributes each intersecting source
+    total across its covered targets, even if its coverage is incomplete.
+  Intensive weight       = Aij / sum_i(Aij) within each covered target.
+Neither SUM nor TOTAL is universally correct; select based on the analysis
+and coverage assumptions, and report sensitivity. The intensive estimate
+of a BG median is an area-weighted source-median proxy, NOT the true median
+of target residents. Area-weighted means and rates also are not necessarily
+population-weighted. A rate calculated from allocated numerator and
+denominator counts is a different estimand from an area-weighted average
+of BG percentages. Denominators <= 0 produce missing values.
+
+Missing source values propagate to targets with positive-area contributions
+from them, even for tiny overlaps; they are not replaced with zero.
+No positive-area overlap and no-polygon units also lack spatial SES.
+True zeros and valid negative income estimates are not missing sentinels.
+Precinct and unit overlays are independently allocated from BGs; unit
+values need not sum to the precinct output. Non-geographic unit votes
+cannot be assigned a real unit polygon or presumed voter demographics.
+
+This is not a dasymetric or population-weighted allocation. Parks, water,
+institutions, uneven settlement, sampling error and changing geography can
+all affect interpretation. An area-level association does not identify
+how individuals voted. Do not add overlapping/nested ACS categories.
+
+THE OFFLINE MAP
+----------------
+Start with map\start_map.bat; README documents Python 3.9+ and local
+http://127.0.0.1:8768/. Leaflet and map data are local; no network basemap
+is used. The application is map\site\index.html, app.js, styles.css and
+ses.css. map\serve.py serves the site.
+
+  Electoral tab: years, race, municipio/precinct/unit, winner or margin;
+    optional 2009 residenciales and vivienda publica overlays.
+  Overlaid tab: electoral map plus a direct ACS block-group overlay.
+    Election and ACS vintage controls are independent; transparency changes
+    the display, not the data or allocation. No target-level MOEs shown.
+
+The map uses within-selection Census quantile breaks; identical colors
+across vintages do not necessarily mean identical values. Map shapes are
+display products; use original source geometry for analysis. Unit polygons
+cannot show votes belonging to non-geographic units. For 2016-2024 the map
+loads electoral catalog/direct payloads. For 2012, app.js instead uses
+map\site\data\results_2012.json, a legacy map payload, even though the
+2012 analysis CSVs are built from the canonical Unidades.xls workbook.
+Do not assume map and analysis results are numerically identical without
+reconciling them. Map catalogs, geometry and per-table JSON payloads live
+under map\site\data\YEAR\LEVEL\ and map\site\data\census\acs\YEAR\.
+Some apportioned payloads exist on disk, but the current Census and Combined
+views show direct block-group values, not apportioned electoral values.
+
+BUILD, VALIDATION AND OPEN WORK
+-------------------------------
+scripts\build.R: curated 2012-2024 native areal allocation and map export.
+scripts\build_legacy.R: older broad 2016-2024 workflow.
+scripts\areal_helpers.R: key/geometry, classification and rate helpers.
+scripts\build_2012.py: 2012 Summary File ingestion, allocation, workbook
+  election ingestion and 2012 output exports.
+scripts\build_census_map.py: direct BG map payloads.
+scripts\export_map.R: legacy map export called within the old R build; depends on
+  build-initialized variables.
+scripts\validate.R and tests\: validation and focused tests.
+
+README.txt gives commands, local runtime constraints, and warns that builds
+overwrite generated outputs/map data. Do not run rebuilds casually.
+outputs\VALIDATION_REPORT.txt records historical and later validation:
+on 2026-11-19 native R tests, rebuild and persistent validation passed in
+a separate workspace using R 4.5.2 and the pinned areal source; the six
+2016-2024 full datasets matched the existing outputs byte-for-byte.
+The historical report entries are not themselves a fresh audit. Documented
+2012 checks include synthetic method tests and conservation checks.
+Passing checks support the stated arithmetic/reproducibility, not historical
+boundary validity, representativeness, target MOEs, or exact true values.
+
+pending issues.txt is a proposed work plan, not completed functionality.
+It discusses strict missingness sensitivity, estimator selection, median
+income proxies, non-geographic vote accounting, duplicate Python/R
+allocation implementations and unstable map colors. Displaying apportioned
+estimates on electoral polygons is explicitly deferred. Before relying on
+a proposed change, confirm implementation and tests in current files.
+
+GOOD NEXT STEPS FOR AN ASSISTANT
+---------------------------------
+1. Ask which election, race, geography, population, estimator and research
+   question are intended before choosing a data product.
+2. Read the corresponding dictionary, exact headers, methodology, source
+   coverage and flags. Confirm denominators and missingness before computing
+   any percentage. Use source colegio files if the question needs colegios.
+3. Retain all election returns when completeness matters; quantify separately
+   the election votes represented by rows without polygons.
+4. Treat cross-year comparisons, maps and aggregate associations with the
+   caveats above; check authoritative historical boundaries and definitions.
+5. Reinspect files and validation dates after any change. Never assert a
+   topic is universally unavailable just because it is not in this folder.
+
+This document is suitable for sharing as context, but review it and any
+underlying files for sensitive information before uploading them to an
+external service. It does not contain or require Census credentials.
