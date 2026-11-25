@@ -823,6 +823,10 @@ function formatCensusValue(metric,value) {
   });
 }
 
+function censusMetricLabel(metric) {
+  return metric.label.replace(/!!/g,' ');
+}
+
 function censusBreaks(values) {
   const sorted=values.filter(numeric).sort((a,b)=>a-b);
   if(!sorted.length) return [];
@@ -832,7 +836,7 @@ function censusBreaks(values) {
 }
 
 function renderCensusLegend(metric,breaks,titleId,listId) {
-  byId(titleId).textContent=metric.label;
+  byId(titleId).textContent=censusMetricLabel(metric);
   const list=byId(listId);
   list.replaceChildren();
   for(let i=0;breaks.length&&i<CENSUS_COLORS.length;i++) {
@@ -877,12 +881,12 @@ function updateMetricOptions(metrics,category,metricSelect) {
     topics.includes('poverty')?'poverty':topics[0];
   category.value=selectedTopic||'';
   const matches=metrics.filter(metric=>metric.topic===category.value)
-    .sort((a,b)=>a.label.localeCompare(b.label));
+    .sort((a,b)=>censusMetricLabel(a).localeCompare(censusMetricLabel(b)));
   metricSelect.replaceChildren();
   matches.forEach(metric=>{
     const option=document.createElement('option');
     option.value=metric.id;
-    option.textContent=metric.label;
+    option.textContent=censusMetricLabel(metric);
     metricSelect.append(option);
   });
   metricSelect.value=matches.some(metric=>metric.id===oldMetric)?oldMetric:
@@ -952,14 +956,14 @@ async function loadCombinedCensusData() {
     if(combined.censusLayer) combined.map.removeLayer(combined.censusLayer);
     combined.censusLayer=layer.addTo(combined.map);
     const period=`${catalog.acs_period_start}–${catalog.acs_period_end}`;
-    byId('combined-census-title').textContent=`${metric.label} · TIGER/Line ${year}`;
+    byId('combined-census-title').textContent=`${censusMetricLabel(metric)} · TIGER/Line ${year}`;
     byId('combined-census-period').textContent=`ACS ${period}`;
     byId('combined-census-description').textContent=
       `${metric.description} Universe: ${metric.universe}. Direct block-group estimate.`;
     renderCensusLegend(
       metric,combined.breaks,'combined-census-title','combined-census-legend'
     );
-    byId('combined-census-title').textContent=`${metric.label} · TIGER/Line ${year}`;
+    byId('combined-census-title').textContent=`${censusMetricLabel(metric)} · TIGER/Line ${year}`;
     const status=
       `${geometry.features.length.toLocaleString()} block groups · `+
       `${observed.length.toLocaleString()} with estimates · `+
