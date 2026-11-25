@@ -35,6 +35,28 @@ def numeric(value):
     return result
 
 
+def direct_label(metric):
+    income_labels = {
+        "B19013_001E": "Median household income",
+        "B19301_001E": "Per capita income",
+        "B20002_001E": "Median earnings, people with earnings age 16+",
+        "B20002_002E": "Median earnings, males with earnings age 16+",
+        "B20002_003E": "Median earnings, females with earnings age 16+",
+    }
+    if metric["id"] in income_labels:
+        return income_labels[metric["id"]]
+    prefixes = {
+        "B15003": "Education, age 25+",
+        "B19001": "Household income",
+        "B20001": "Earnings, age 16+ with earnings",
+    }
+    if metric["table"] not in prefixes:
+        return metric["label"]
+    parts = [part.strip().rstrip(":") for part in metric["label"].split("!!")]
+    category = " - ".join(parts[1:]) if len(parts) > 1 else "Total"
+    return f"{prefixes[metric['table']]}: {category} (count)"
+
+
 def export_year(year, root=ROOT, analysis_output=None):
     if analysis_output is None:
         pointer = root / "outputs" / "curated_latest.json"
@@ -82,7 +104,7 @@ def export_year(year, root=ROOT, analysis_output=None):
         metrics_by_table[metric["table"]].append(metric)
 
     rates = [
-        rate for rate in read_csv(root / "outputs" / "rate_dictionary.csv")
+        rate for rate in read_csv(analysis_dir / "rate_dictionary.csv")
         if rate["id"] in rate_ids
     ]
     if len(rates) != len(rate_ids) or {rate["id"] for rate in rates} != set(rate_ids):
@@ -139,6 +161,7 @@ def export_year(year, root=ROOT, analysis_output=None):
         for metric in table_metrics:
             copied = dict(metric)
             copied.update(
+                label=direct_label(metric),
                 fields={"direct": metric["id"]},
                 mode="direct",
                 description=f"{metric['description']} Direct ACS estimate at block-group geography.",
@@ -173,13 +196,13 @@ def export_year(year, root=ROOT, analysis_output=None):
         derived_quality[field] = quality_for(rate["id"])
         derived_metrics.append({
             "id": f"{rate['id']}_ratio",
-            "label": f"{rate['label']} / source count ratio",
+            "label": rate["label"],
             "topic": rate["topic"],
             "kind": "derived_percentage",
             "table": "derived_rates",
             "fields": {"direct": field},
             "mode": "direct",
-            "description": "Ratio of ACS block-group numerator and denominator estimates; not spatially allocated.",
+            "description": "Percentage calculated from Census counts for this block group; not an electoral-area estimate.",
             "universe": rate["universe"],
             "coverage": {"direct": sum(value is not None for value in values)},
         })

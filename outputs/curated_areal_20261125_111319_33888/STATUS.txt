@@ -1,0 +1,1 @@
+COMPLETE: all direct areal checks passed.

@@ -14,6 +14,25 @@ SPEC.loader.exec_module(BUILDER)
 
 
 class DirectCensusMapExportTests(unittest.TestCase):
+    def test_income_and_earnings_counts_have_plain_labels(self):
+        self.assertEqual(
+            BUILDER.direct_label({"id": "B19001_002E", "table": "B19001",
+                                  "label": "B19001 Total:!!Less than $10,000"}),
+            "Household income: Less than $10,000 (count)",
+        )
+        self.assertEqual(
+            BUILDER.direct_label({
+                "id": "B20001_024E",
+                "table": "B20001",
+                "label": "B20001 Total:!!Female:!!$1 to $2,499 or loss",
+            }),
+            "Earnings, age 16+ with earnings: Female - $1 to $2,499 or loss (count)",
+        )
+        self.assertEqual(
+            BUILDER.direct_label({"id": "B20002_001E", "table": "B20002", "label": "unused"}),
+            "Median earnings, people with earnings age 16+",
+        )
+
     def test_exports_direct_estimates_and_count_ratios_by_geoid(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -81,7 +100,7 @@ class DirectCensusMapExportTests(unittest.TestCase):
                 "001000000002,0,unassessable,5,moderate_uncertainty,,unassessable_derived\n",
                 encoding="utf-8",
             )
-            rate_path = root / "outputs" / "rate_dictionary.csv"
+            rate_path = root / "outputs" / "curated_test" / "rate_dictionary.csv"
             rate_path.parent.mkdir(parents=True, exist_ok=True)
             rate_path.write_text(
                 "id,label,topic,universe,numerator,denominator\n"
@@ -111,6 +130,11 @@ class DirectCensusMapExportTests(unittest.TestCase):
             next(metric for metric in exported_catalog["metrics"]
                  if metric["id"] == "male_share_ratio")["fields"]["direct"],
             "male_share_source",
+        )
+        self.assertEqual(
+            next(metric for metric in exported_catalog["metrics"]
+                 if metric["id"] == "male_share_ratio")["label"],
+            "Male population",
         )
 
     def test_published_map_matches_the_current_curated_analysis(self):

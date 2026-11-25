@@ -61,4 +61,36 @@ for (mode in c("sum", "total", "intensive")) {
             is.na(corrected[[field]][2]))
 }
 stopifnot(!same_areal_values(NA_real_, NaN))
+rates <- curated_rates()
+lookup_rate <- function(id) rates[[match(id, vapply(rates, function(rate) rate$id, character(1)))]]
+income <- lookup_rate("income_under_20k_pct")
+earnings <- lookup_rate("earnings_under_10k_pct")
+test_data <- as.data.frame(as.list(setNames(rep(0, length(curated_fields())), curated_fields())))
+test_data$B19001_001E <- 10
+test_data$B19001_002E <- 2
+test_data$B19001_003E <- 1
+test_data$B20001_001E <- 20
+test_data$B20001_003E <- 2
+test_data$B20001_024E <- 3
+stopifnot(calculate_rate(test_data, income) == 30,
+          calculate_rate(test_data, earnings) == 25)
+for (i in 2:17) test_data[[sprintf("B19001_%03dE", i)]] <- 1
+test_data$B19001_001E <- 16
+for (i in c(3:22, 24:43)) test_data[[sprintf("B20001_%03dE", i)]] <- 1
+test_data$B20001_001E <- 40
+income_ids <- c("income_under_20k_pct", "income_20k_to_50k_pct",
+                "income_50k_to_100k_pct", "income_100k_plus_pct")
+earnings_ids <- c("earnings_under_10k_pct", "earnings_10k_to_25k_pct",
+                  "earnings_25k_to_50k_pct", "earnings_50k_plus_pct")
+stopifnot(isTRUE(all.equal(
+  vapply(income_ids, function(id) calculate_rate(test_data, lookup_rate(id)), numeric(1)),
+  setNames(100 * c(3, 6, 3, 4) / 16, income_ids)
+)), isTRUE(all.equal(
+  vapply(earnings_ids, function(id) calculate_rate(test_data, lookup_rate(id)), numeric(1)),
+  setNames(100 * c(8, 12, 10, 10) / 40, earnings_ids)
+)))
+test_data$B20001_024E <- NA_real_
+stopifnot(is.na(calculate_rate(test_data, earnings)))
+test_data$B19001_001E <- 0
+stopifnot(is.na(calculate_rate(test_data, income)))
 cat("PASS: quality flags and exact upstream behavior for missing boundary contacts.\n")

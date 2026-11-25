@@ -59,11 +59,53 @@ curated_fields <- function() {
 
 curated_rates <- function() {
   rates <- rate_definitions()
+  rate <- function(id, label, numerator, denominator, universe) {
+    list(id = id, label = label, topic = "income_and_earnings_related",
+         numerator = numerator, denominator = denominator, universe = universe)
+  }
+  rates <- c(rates, list(
+    rate("income_under_20k_pct", "Households with income under $20,000 (%)",
+         sprintf("B19001_%03dE", 2:4), "B19001_001E", "Households"),
+    rate("income_20k_to_50k_pct", "Households with income $20,000-$49,999 (%)",
+         sprintf("B19001_%03dE", 5:10), "B19001_001E", "Households"),
+    rate("income_50k_to_100k_pct", "Households with income $50,000-$99,999 (%)",
+         sprintf("B19001_%03dE", 11:13), "B19001_001E", "Households")
+  ))
+  earnings <- list(under_10k = 3:6, `10k_to_25k` = 7:12,
+                   `25k_to_50k` = 13:17, `50k_plus` = 18:22)
+  labels <- c(under_10k = "under $10,000 (or a loss)",
+              `10k_to_25k` = "$10,000-$24,999", `25k_to_50k` = "$25,000-$49,999",
+              `50k_plus` = "$50,000 or more")
+  for (id in names(earnings)) {
+    bins <- earnings[[id]]
+    rates[[length(rates) + 1L]] <- rate(
+      paste0("earnings_", id, "_pct"), paste0("People with earnings ", labels[[id]], " (%)"),
+      sprintf("B20001_%03dE", c(bins, bins + 21)), "B20001_001E",
+      "Population 16 years and over with earnings"
+    )
+  }
   selected <- curated_spec()$rates
   rates <- rates[vapply(rates, function(x) x$id %in% selected, logical(1))]
-  if (!setequal(vapply(rates, function(x) x$id, character(1)), selected)) {
+  education_labels <- c(
+    less_than_high_school_pct = "Less than high school (%, age 25+)",
+    high_school_or_ged_pct = "High school diploma or GED (%, age 25+)",
+    some_college_or_associates_pct = "Some college or associate degree (%, age 25+)",
+    bachelors_pct = "Bachelor's degree (%, age 25+)",
+    graduate_or_professional_pct = "Graduate or professional degree (%, age 25+)",
+    bachelors_or_higher_pct = "Bachelor's degree or higher (%, age 25+)"
+  )
+  for (i in seq_along(rates)) {
+    if (rates[[i]]$id %in% names(education_labels)) {
+      rates[[i]]$label <- unname(education_labels[rates[[i]]$id])
+    }
+  }
+  if (length(rates) != length(selected) ||
+      !setequal(vapply(rates, function(x) x$id, character(1)), selected)) {
     stop("Curated rate configuration does not match the defined rates.")
   }
+  if (any(vapply(rates, function(x) {
+    !all(c(x$numerator, x$denominator) %in% curated_fields())
+  }, logical(1)))) stop("Curated rate components must be selected estimates.")
   rates
 }
 

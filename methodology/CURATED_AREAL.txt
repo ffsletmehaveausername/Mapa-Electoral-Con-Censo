@@ -14,14 +14,21 @@ depends on the four compact data/census_socioeconomic/acs/curated/census_YEAR.cs
 source snapshots, source dictionary, election-key snapshots, pinned areal
 source and compatible local R library. These snapshots retain the selected
 values and MOEs from the broader census data test files.
+After changing the indicator selection, refresh the snapshots from those
+broader files with python scripts/refresh_curated_sources.py before building.
 
 WHAT IS INCLUDED
 ----------------
 Each YEAR/block_groups.csv contains selected original ACS estimates, their
 margins of error (MOEs), source annotations where available, and quality
-flags. It covers population, median age, education, income, poverty, public
-assistance, SNAP, housing vacancy and home ownership. Six percentages are
-derived from the relevant count estimates. Original source CSVs remain intact.
+flags. It covers population, median age, education, income, earnings, poverty,
+public assistance, SNAP, housing vacancy and home ownership. Education
+includes attainment levels and grouped percentages for people age 25 and
+over. Income includes household brackets, median household and per-capita
+income. Earnings includes brackets by sex, grouped percentages for people
+with earnings age 16 and over, and median earnings overall and by sex.
+Percentages are derived from the relevant count estimates; the run's
+rate_dictionary.csv describes their components. Original source CSVs remain intact.
 source_dictionary.csv records the year-specific descriptions and labels.
 Shared codes were chosen after reviewing these labels and available universe
 descriptions, but the project's 2016 metadata lacks universe descriptions;
@@ -76,8 +83,9 @@ TOTAL results and reports groups with little or no covered area.
 Ratios in the SUM and TOTAL files are recomputed from allocated counts, not
 the result of interpolating the original source percentages.
 
-INTENSIVE interpolates area-weighted source medians. These are not true
-medians of people or households in the destination and are especially
+INTENSIVE interpolates area-weighted source medians and per-capita income.
+These are not true medians or population-weighted per-capita incomes for
+people or households in the destination and are especially
 sensitive to missing source medians. Missing data can propagate to a target
 even when the missing source is an uninhabited area. No target-level MOEs
 or reliability classifications are estimated. target_source_quality.csv

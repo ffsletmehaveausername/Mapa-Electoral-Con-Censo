@@ -903,8 +903,10 @@ function updateMetricOptions(metrics,category,metricSelect) {
   const selectedTopic=topics.includes(oldTopic)?oldTopic:
     topics.includes('poverty')?'poverty':topics[0];
   category.value=selectedTopic||'';
+  const rank=metric=>metric.kind==='derived_percentage'?0:metric.unit==='currency'?1:2;
   const matches=metrics.filter(metric=>metric.topic===category.value)
-    .sort((a,b)=>censusMetricLabel(a).localeCompare(censusMetricLabel(b)));
+    .sort((a,b)=>rank(a)-rank(b)||
+      censusMetricLabel(a).localeCompare(censusMetricLabel(b),undefined,{numeric:true}));
   metricSelect.replaceChildren();
   matches.forEach(metric=>{
     const option=document.createElement('option');

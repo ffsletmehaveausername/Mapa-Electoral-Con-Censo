@@ -30,6 +30,10 @@ if (!file.copy("methodology/CURATED_AREAL.txt", file.path(output, "README.txt"))
   stop("Could not copy curated analysis documentation.")
 }
 curated_write_csv(metadata, file.path(output, "source_dictionary.csv"))
+curated_write_csv(dplyr::bind_rows(lapply(rates, function(rate) data.frame(
+  id = rate$id, label = rate$label, topic = rate$topic, universe = rate$universe,
+  numerator = paste(rate$numerator, collapse = ";"), denominator = rate$denominator
+))), file.path(output, "rate_dictionary.csv"))
 writeLines(c(paste("areal commit:", config$areal_commit),
              paste("areal version:", packageVersion("areal")),
              paste("R version:", getRversion()),

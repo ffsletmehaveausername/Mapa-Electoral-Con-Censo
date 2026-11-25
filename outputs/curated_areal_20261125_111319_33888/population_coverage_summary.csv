@@ -1,0 +1,9 @@
+"year","level","source_population_missing","source_population","source_groups_no_overlap","population_no_overlap","inhabited_groups_under_half_area_covered","sum_population","sum_targets_missing","total_population","total_targets_missing"
+2012,"prekey",0,3716727,40,0,46,3716727,0,3637812.64566145,0
+2012,"unikey",0,3716727,40,0,46,3716727,0,3637695.45408295,0
+2016,"prekey",0,3529385,40,0,46,3529385,0,3454361.56418704,0
+2016,"unikey",0,3529385,40,0,46,3529385,0,3454361.56418704,0
+2020,"prekey",0,3255642,38,0,43,3255642,0,3181487.9458287,0
+2020,"unikey",0,3255642,38,0,43,3255642,0,3181487.9473315,0
+2024,"prekey",0,3234309,38,0,42,3234309,0,3163527.72670471,0
+2024,"unikey",0,3234309,38,0,42,3234309,0,3163527.72697908,0

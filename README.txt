@@ -32,7 +32,9 @@ match the corresponding prekey and unikey catalogs.
 The Overlaid tab layers direct ACS estimates on matching TIGER/Line
 block-group boundaries over the electoral map. The map does not display
 apportioned ACS estimates on electoral geographies; those remain in outputs/
-for analysis. It shows the same 25 curated indicators in each ACS vintage,
+for analysis. It shows the same expanded selection in each ACS vintage,
+including education levels, household income and earnings brackets, and
+plain-language percentages calculated from block-group counts,
 with a source-quality summary. Individual source flags and MOEs are in the
 curated block-group datasets; derived percentages have no assessed MOE.
 
@@ -72,7 +74,8 @@ The primary R build calls native areal for all four years, reusing an
 intersection while checking representative outputs against aw_interpolate.
 It retains both extensive SUM and TOTAL estimates because the appropriate
 choice depends on coverage assumptions. Intensive results are area-weighted
-source medians, not reconstructed target medians. The independent validator
+source medians and per-capita values, not reconstructed target medians or
+population-weighted per-capita income. The independent validator
 recalculates every stored result using the native workflow. Read
 methodology/CURATED_AREAL.txt before interpreting the results.
 
@@ -98,6 +101,10 @@ Run commands from the project root:
   & '.\.runtime\R\bin\Rscript.exe' tests\test_curated_areal.R
   python -m unittest discover -s tests -v
   python scripts/build_census_map.py
+
+After changing curated_indicators.json, run
+  python scripts/refresh_curated_sources.py
+before the primary build to refresh the four compact Census snapshots.
 
 The local Windows runtime uses R 4.5.2 with .runtime/R-library. R 4.6.2
 failed to load that library's rlang DLL; do not mix it with this library.
