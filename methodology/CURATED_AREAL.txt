@@ -21,8 +21,9 @@ WHAT IS INCLUDED
 ----------------
 Each YEAR/block_groups.csv contains selected original ACS estimates, their
 margins of error (MOEs), source annotations where available, and quality
-flags. It covers population, median age, education, income, earnings, poverty,
-public assistance, SNAP, housing vacancy and home ownership. Education
+flags. The current selection has 103 estimates and 19 derived percentages
+per vintage. It covers population, median age, education, income, earnings,
+poverty, public assistance, SNAP, housing vacancy and home ownership. Education
 includes attainment levels and grouped percentages for people age 25 and
 over. Income includes household brackets, median household and per-capita
 income. Earnings includes brackets by sex, grouped percentages for people

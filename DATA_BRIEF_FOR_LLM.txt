@@ -1,15 +1,16 @@
 PUERTO RICO ELECTORAL AND CENSUS PROJECT: DATA BRIEF FOR AN LLM
 ================================================================
-Snapshot prepared: 2026-11-19
+Updated: 2026-11-25. Earlier electoral and broad-data inventories were
+prepared on 2026-11-19 and remain historical unless independently checked.
 
-UPDATE 2026-11-25: The primary analysis is the four-year curated native R
-areal workflow. outputs\curated_latest.json identifies its completed run;
-the older wide datasets and their Python 2012 backfill are retained as
-legacy. The Overlaid map now displays the same 25 curated direct block-group
-indicators for each year, not apportioned values. See README.txt and
-methodology\CURATED_AREAL.txt for the current build, quality flags and
-limitations. Remaining counts and descriptions below are historical unless
-independently checked against the current files.
+The primary analysis is the four-year curated native R areal workflow.
+outputs\curated_latest.json identifies the current completed run; older
+wide joined datasets and their Python 2012 backfill are legacy. The Overlaid
+map displays 122 direct block-group indicators per vintage: 103 selected
+ACS estimates and 19 percentages derived from ACS counts. It does NOT show
+the separately calculated areal estimates for electoral areas.
+See README.txt and methodology\CURATED_AREAL.txt for current commands,
+source-quality flags, output files, checks and limitations.
 
 PURPOSE AND HOW TO USE THIS BRIEF
 ---------------------------------
@@ -40,6 +41,7 @@ project.json                          2016-2024 R build configuration,
 data\electoral\source\                Original election data and dictionary.
 data\electoral\normalized\            Precinct/unit election inputs, 2016-2024.
 data\census_socioeconomic\acs\        ACS tables, raw inputs and metadata.
+census data test\                     Broad year-specific merged Census CSVs.
 data\geodata\                         Electoral, TIGER and housing geography.
 outputs\                              Combined and method-specific datasets.
 map\                                  Offline web map and local map payloads.
@@ -96,8 +98,9 @@ Normalized files:
 They contain aggregated election inputs for the corresponding level, with
 field prefixes such as GENERAL__, ESTATAL__, LEGISLATIVA__, MUNICIPAL__,
 and PLEBISCITO__. They are not a replacement for the source dictionary or
-the original colegio records. The R build consumes these snapshots; the
-inspected build does not itself construct them from original source files.
+the original colegio records. The legacy R build consumes these snapshots;
+the primary curated build uses existing legacy output keys for its audit
+and does not construct election returns from the original source files.
 The 2020/2024 normalized files include per-source SOURCE_ROWS fields but
 not the original text STATUS fields. INSCRITOS appears for multiple ballot
 sources: do not sum repeated registration fields across ballots as if
@@ -119,7 +122,10 @@ leading zeros: normalize carefully. Analysis PREKEY is three digits, e.g.
 e.g. 001-1. Source CSVs may write PREKEY as 1 instead of 001. Include year
 in cross-year joins; matching codes do not prove stable boundaries.
 
-Election and polygon keys are outer-joined in analysis outputs. A unit can
+Election and polygon keys are outer-joined in the legacy joined outputs.
+Primary curated target-estimate CSVs include only polygons; their separate
+target_key_audit.csv records keys from the existing election snapshot,
+including keys without polygons. A unit can
 have returns but no geographic polygon, or a polygon but no return. Missing
 geometry is not automatically a lost election record. In particular,
 2012 has 314 unit return pairs using UNIKEY 77-80 without retained unit
@@ -163,8 +169,41 @@ supplemental plebiscite CSV; no presidential CSV or presidential fields
 were found in the normalized unit file. A dictionary entry alone is not
 evidence that corresponding observations are present.
 
-ANALYSIS OUTPUTS AND DATA DICTIONARIES
----------------------------------------
+PRIMARY ANALYSIS OUTPUTS AND DATA DICTIONARIES
+----------------------------------------------
+Read outputs\curated_latest.json for the active run name. Within that run:
+
+  YEAR\block_groups.csv: 103 ACS estimates, source MOEs and annotations
+    where available, source-quality flags, and 19 derived percentages.
+  YEAR\prekey\ and YEAR\unikey\: polygon-based precinct and voting-unit
+    results. sum.csv and total.csv contain allocated counts and percentages
+    recalculated from those counts; intensive.csv contains area-weighted
+    source median and per-capita proxies.
+  The matching *_positive_area.csv files remove line/point-only contacts;
+    the unsuffixed files preserve the pinned package's exact behavior.
+  target_key_audit.csv records snapshot keys with and without polygons.
+    target_source_quality.csv summarizes overlapping source flags; it is
+    not a target-level margin of error or a reliability classification.
+  source_dictionary.csv and rate_dictionary.csv document the selected
+    source fields and the components and universes of the percentages.
+  source_geometry.rds, intersection.rds, target_geometry.rds and weights.rds
+    retain the geometries and weights needed to inspect the calculations.
+  direct_areal_checks.csv, border_correction_checks.csv and
+    population_coverage_summary.csv report reference, contact and coverage
+    checks. STATUS.txt must say COMPLETE.
+
+The selected indicators cover education levels (age 25+), household income
+and income brackets, per-capita income, earnings brackets and median earnings
+(age 16+ with earnings), as well as population, age, poverty, assistance,
+SNAP, housing vacancy and ownership. The 19 percentages have no calculated
+MOEs. High-uncertainty source estimates are retained and flagged. For
+positive estimates with usable 90% MOEs, the source CV screen is
+MOE / (1.645 * estimate): below 0.15 is lower uncertainty, 0.15 to below
+0.30 moderate, and 0.30 or above high. Missing, annotated or unassessable
+values have separate flags; these screens are not guarantees of accuracy.
+
+LEGACY JOINED OUTPUTS AND DICTIONARIES
+--------------------------------------
 The older broad joined products are:
   outputs\YEAR\prekey\full_dataset.csv
   outputs\YEAR\unikey\full_dataset.csv
@@ -212,12 +251,12 @@ have their own headers; inspect them rather than assuming identical names.
   outputs\2012\source_dictionary.csv: 2012-specific metadata.
   outputs\2012\omitted_variables.csv: 155 fields unavailable in the 2012
     Summary File relative to the requested catalog.
-  outputs\rate_dictionary.csv: 15 defined ratios, component variables,
+  outputs\rate_dictionary.csv: 15 legacy defined ratios, component variables,
     universes and distinction between intensive and count-ratio estimates.
   data\census_socioeconomic\acs\apportionment_catalog.csv: catalog used by
     the 2016-2024 R build, not the combined four-year output dictionary.
 
-The rate dictionary covers owner occupancy, vacancy, households earning
+The legacy rate dictionary covers owner occupancy, vacancy, households earning
 $100K+, below-poverty population, six education measures (age 25+), Social
 Security, SSI, public assistance, assistance or food stamps, and SNAP.
 For example, B01003_001E is total population and B19013_001E is median
@@ -243,6 +282,14 @@ usable source-field counts in outputs\source_dictionary.csv:
   2016     201            2,032   1,905       76         51
   2020     211            2,161   2,028       74         59
   2024     252            2,404   2,237       74         93
+
+The broad merged source files are census data test\census_YEAR.csv; the
+primary build reads the smaller selected snapshots under
+data\census_socioeconomic\acs\curated\. The selection is defined in
+data\census_socioeconomic\acs\curated_indicators.json. Run
+scripts\refresh_curated_sources.py after changing that selection and
+before rebuilding. The 2012 selected source has no separate annotation
+columns, so absence of annotations does not establish their absence in ACS.
 
 Topics represented are population/households, education, income/earnings,
 poverty, housing, and government aid/retirement. This is the usable
@@ -310,8 +357,13 @@ of BG percentages. Denominators <= 0 produce missing values.
 
 Missing source values propagate to targets with positive-area contributions
 from them, even for tiny overlaps; they are not replaced with zero.
+The exact native workflow can also propagate missingness through a zero-area
+boundary contact. The separately labeled positive-area comparison removes
+those contacts. The latest run reported none, so the two agreed for that run.
 No positive-area overlap and no-polygon units also lack spatial SES.
-True zeros and valid negative income estimates are not missing sentinels.
+True zeros remain zero. The primary selected build rejects unexpected
+negative values after handling its configured missing sentinels; the older
+broad workflow retains valid negative income estimates where applicable.
 Precinct and unit overlays are independently allocated from BGs; unit
 values need not sum to the precinct output. Non-geographic unit votes
 cannot be assigned a real unit polygon or presumed voter demographics.
@@ -330,9 +382,10 @@ ses.css. map\serve.py serves the site.
 
   Electoral tab: years, race, municipio/precinct/unit, winner or margin;
     optional 2009 residenciales and vivienda publica overlays.
-  Overlaid tab: electoral map plus a direct ACS block-group overlay.
+  Overlaid tab: electoral map plus 122 direct ACS block-group indicators.
     Election and ACS vintage controls are independent; transparency changes
-    the display, not the data or allocation. No target-level MOEs shown.
+    the display, not the data or allocation. The map shows a source-quality
+    summary, not MOEs. Derived-percentage uncertainty is not assessed.
 
 The map uses within-selection Census quantile breaks; identical colors
 across vintages do not necessarily mean identical values. Map shapes are
@@ -340,16 +393,21 @@ display products; use original source geometry for analysis. Unit polygons
 cannot show votes belonging to non-geographic units. For 2016-2024 the map
 loads electoral catalog/direct payloads. For 2012, app.js instead uses
 map\site\data\results_2012.json, a legacy map payload, even though the
-2012 analysis CSVs are built from the canonical Unidades.xls workbook.
+legacy 2012 joined CSVs were built from the canonical Unidades.xls workbook.
+The primary curated run uses the existing legacy election-key snapshot for
+its audit; it does not rebuild or join the election returns.
 Do not assume map and analysis results are numerically identical without
 reconciling them. Map catalogs, geometry and per-table JSON payloads live
 under map\site\data\YEAR\LEVEL\ and map\site\data\census\acs\YEAR\.
-Some apportioned payloads exist on disk, but the current Census and Combined
-views show direct block-group values, not apportioned electoral values.
+Some apportioned payloads exist on disk, but the current Overlaid view shows
+direct block-group values, not apportioned electoral values.
 
 BUILD, VALIDATION AND OPEN WORK
 -------------------------------
 scripts\build.R: curated 2012-2024 native areal allocation and map export.
+scripts\build_curated_areal.R and scripts\curated_areal_helpers.R:
+  primary calculations, selected indicators, flags and audits.
+scripts\refresh_curated_sources.py: refresh compact selected source files.
 scripts\build_legacy.R: older broad 2016-2024 workflow.
 scripts\areal_helpers.R: key/geometry, classification and rate helpers.
 scripts\build_2012.py: 2012 Summary File ingestion, allocation, workbook
@@ -359,8 +417,15 @@ scripts\export_map.R: legacy map export called within the old R build; depends o
   build-initialized variables.
 scripts\validate.R and tests\: validation and focused tests.
 
-README.txt gives commands, local runtime constraints, and warns that builds
-overwrite generated outputs/map data. Do not run rebuilds casually.
+README.txt gives commands and local runtime constraints. The primary build
+creates a new run, then updates map payloads and the latest-run pointer;
+legacy builds can overwrite their generated outputs. Preserve needed files.
+The 2026-11-25 expanded run completed 24 representative comparisons with
+direct areal::aw_interpolate calls; its persistent validator recomputed
+the stored weights and every selected target estimate and percentage.
+Focused R tests, Python tests and map checks passed. These checks do not
+establish that every field was directly compared to aw_interpolate, nor do
+they validate election-day boundaries or target-level uncertainty.
 outputs\VALIDATION_REPORT.txt records historical and later validation:
 on 2026-11-19 native R tests, rebuild and persistent validation passed in
 a separate workspace using R 4.5.2 and the pinned areal source; the six
